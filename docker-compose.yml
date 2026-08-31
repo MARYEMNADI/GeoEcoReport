@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: geoecoreport-app
+    container_name: geoecoreport-app
+    restart: unless-stopped
+    tty: true
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+    networks:
+      - geoeco-network
+
+  db:
+    image: mysql:8.0
+    container_name: geoecoreport-db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: geoecoreport
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - geoeco-network
+
+networks:
+  geoeco-network:
+    driver: bridge
