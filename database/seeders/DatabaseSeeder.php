@@ -2,24 +2,23 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
      * Seed the application's database.
+     *
+     * يتم تشغيل جميع ملفات Seeder بالترتيب المناسب
+     * لتجنب مشاكل العلاقات والمفاتيح الأجنبية.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            LaratrustSeeder::class, // 1. إنشاء Roles و Permissions
+            UserSeeder::class,      // 2. إنشاء المستخدمين وربطهم بالأدوار
+            CategorySeeder::class,  // 3. إنشاء تصنيفات الحوادث
+            IncidentSeeder::class,  // 4. إنشاء الحوادث وربطها بالمستخدمين والتصنيفات
         ]);
     }
 }

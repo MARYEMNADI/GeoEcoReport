@@ -1,6 +1,5 @@
-version: '3.8'
-
 services:
+
   app:
     build:
       context: .
@@ -10,6 +9,8 @@ services:
     restart: unless-stopped
     tty: true
     working_dir: /var/www
+    ports:
+      - "8000:8000"
     volumes:
       - .:/var/www
     networks:
@@ -25,9 +26,16 @@ services:
     environment:
       MYSQL_DATABASE: geoecoreport
       MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: geoeco
+      MYSQL_PASSWORD: geoeco
+    volumes:
+      - mysql_data:/var/lib/mysql
     networks:
       - geoeco-network
 
 networks:
   geoeco-network:
     driver: bridge
+
+volumes:
+  mysql_data:
