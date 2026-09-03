@@ -9,16 +9,23 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes
+| Web Routes - GeoEcoReport
 |--------------------------------------------------------------------------
 */
+
 
 // ============================================================
 // 1. الصفحة الرئيسية
 // ============================================================
 
 Route::get('/', function () {
+
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+
     return redirect()->route('login');
+
 })->name('home');
 
 
@@ -28,14 +35,21 @@ Route::get('/', function () {
 
 Route::middleware('guest')->group(function () {
 
+    // -------------------------
     // Login
+    // -------------------------
+
     Route::get('/login', [AuthController::class, 'showLoginForm'])
         ->name('login');
 
     Route::post('/login', [AuthController::class, 'login'])
         ->name('login.submit');
 
+
+    // -------------------------
     // Register
+    // -------------------------
+
     Route::get('/register', [AuthController::class, 'showRegisterForm'])
         ->name('register');
 
@@ -49,8 +63,8 @@ Route::middleware('guest')->group(function () {
 // ============================================================
 
 Route::post('/logout', [AuthController::class, 'logout'])
-    ->name('logout')
-    ->middleware('auth');
+    ->middleware('auth')
+    ->name('logout');
 
 
 // ============================================================
@@ -59,9 +73,37 @@ Route::post('/logout', [AuthController::class, 'logout'])
 
 Route::middleware('auth')->group(function () {
 
-    // --------------------------------------------------------
+    // ========================================================
+    // Dashboard principal
+    // ========================================================
+
+    Route::get('/dashboard', function () {
+
+        $user = auth()->user();
+
+        // Administrateur
+        if ($user->hasRole('administrateur')) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        // Technicien
+        if ($user->hasRole('technicien')) {
+            return redirect()->route('technicien.dashboard');
+        }
+
+        // Citoyen
+        if ($user->hasRole('citoyen')) {
+            return redirect()->route('citoyen.dashboard');
+        }
+
+        abort(403, 'Aucun rôle attribué à cet utilisateur.');
+
+    })->name('dashboard');
+
+
+    // ========================================================
     // Dashboards حسب الدور
-    // --------------------------------------------------------
+    // ========================================================
 
     Route::get('/citoyen/dashboard', [DashboardController::class, 'citoyen'])
         ->middleware('role:citoyen')
@@ -78,16 +120,16 @@ Route::middleware('auth')->group(function () {
         ->name('admin.dashboard');
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // Gestion des incidents - CRUD
-    // --------------------------------------------------------
+    // ========================================================
 
     Route::resource('incidents', IncidentController::class);
 
 
-    // --------------------------------------------------------
-    // Changement du statut d'un incident
-    // --------------------------------------------------------
+    // ========================================================
+    // Changement du statut
+    // ========================================================
 
     Route::patch(
         '/incidents/{incident}/status',
@@ -95,9 +137,9 @@ Route::middleware('auth')->group(function () {
     )->name('incidents.status.update');
 
 
-    // --------------------------------------------------------
-    // Gestion des commentaires
-    // --------------------------------------------------------
+    // ========================================================
+    // Commentaires
+    // ========================================================
 
     Route::post(
         '/incidents/{incident}/comments',
