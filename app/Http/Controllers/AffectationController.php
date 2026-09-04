@@ -16,7 +16,7 @@ class AffectationController extends Controller
      */
     public function create(Incident $incident): View
     {
-        $this->authorize('update', $incident);
+        $this->authorize('assign', $incident);
 
         $techniciens = User::whereHas(
             'roles',

@@ -7,9 +7,6 @@ use App\Models\User;
 
 class IncidentPolicy
 {
-    /**
-     * السماح للأدوار المعنية بعرض قائمة البلاغات.
-     */
     public function viewAny(User $user): bool
     {
         return $user->hasRole([
@@ -19,9 +16,6 @@ class IncidentPolicy
         ]);
     }
 
-    /**
-     * السماح للأدوار المعنية بعرض تفاصيل البلاغ.
-     */
     public function view(User $user, Incident $incident): bool
     {
         return $user->hasRole([
@@ -31,9 +25,6 @@ class IncidentPolicy
         ]);
     }
 
-    /**
-     * إنشاء بلاغ.
-     */
     public function create(User $user): bool
     {
         return $user->hasRole([
@@ -42,11 +33,11 @@ class IncidentPolicy
         ]);
     }
 
-    /**
-     * تعديل البلاغ.
-     */
-    public function update(User $user, Incident $incident): bool
-    {
+    public function update(
+        User $user,
+        Incident $incident
+    ): bool {
+
         if ($user->hasRole('administrateur')) {
             return true;
         }
@@ -56,11 +47,11 @@ class IncidentPolicy
             && $incident->status === 'En attente';
     }
 
-    /**
-     * حذف البلاغ.
-     */
-    public function delete(User $user, Incident $incident): bool
-    {
+    public function delete(
+        User $user,
+        Incident $incident
+    ): bool {
+
         if ($user->hasRole('administrateur')) {
             return true;
         }
@@ -70,19 +61,22 @@ class IncidentPolicy
             && $incident->status === 'En attente';
     }
 
-    /**
-     * السماح فقط للتقني والأدمن بتغيير حالة البلاغ.
-     */
-    public function changeStatus(User $user, Incident $incident): bool
-    {
-        return $user->hasRole(['technicien', 'administrateur']);
+    public function changeStatus(
+        User $user,
+        Incident $incident
+    ): bool {
+
+        return $user->hasRole([
+            'technicien',
+            'administrateur',
+        ]);
     }
 
-    /**
-     * السماح فقط للأدمن بتعيين التقنيين.
-     */
-    public function assign(User $user, Incident $incident): bool
-    {
+    public function assign(
+        User $user,
+        Incident $incident
+    ): bool {
+
         return $user->hasRole('administrateur');
     }
 }

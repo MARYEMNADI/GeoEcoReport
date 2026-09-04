@@ -5,7 +5,9 @@ use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IncidentController;
 use App\Http\Controllers\IncidentStatusController;
+use App\Http\Controllers\AffectationController;
 use Illuminate\Support\Facades\Route;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -72,6 +74,15 @@ Route::post('/logout', [AuthController::class, 'logout'])
 // ============================================================
 
 Route::middleware('auth')->group(function () {
+    Route::patch(
+    '/incidents/{incident}/status',
+    [IncidentStatusController::class, 'update']
+)->name('incidents.status.update');
+
+Route::post(
+    '/incidents/{incident}/affectations',
+    [AffectationController::class, 'store']
+)->name('incidents.affectations.store');
 
     // ========================================================
     // Dashboard principal

@@ -6,7 +6,7 @@ use App\Http\Requests\StoreIncidentRequest;
 use App\Http\Requests\UpdateIncidentRequest;
 use App\Models\Category;
 use App\Models\Incident;
-use App\Models\User;
+use App\Models\IncidentImage;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
@@ -17,13 +17,16 @@ class IncidentController extends Controller
     use AuthorizesRequests;
 
     /**
-     * عرض قائمة البلاغات.
+     * عرض جميع الحوادث.
      */
     public function index(): View
     {
         $this->authorize('viewAny', Incident::class);
 
-        $incidents = Incident::with(['category', 'user'])
+        $incidents = Incident::with([
+            'category',
+            'user',
+        ])
             ->latest()
             ->paginate(10);
 
@@ -31,7 +34,7 @@ class IncidentController extends Controller
     }
 
     /**
-     * عرض نموذج إنشاء بلاغ.
+     * صفحة إنشاء حادث.
      */
     public function create(): View
     {
@@ -43,27 +46,29 @@ class IncidentController extends Controller
     }
 
     /**
-     * حفظ بلاغ جديد.
+     * حفظ حادث جديد.
      */
     public function store(StoreIncidentRequest $request): RedirectResponse
     {
         $this->authorize('create', Incident::class);
 
-        $validated = $request->validated();
+        $data = $request->validated();
 
-        $incident = Incident::create([
-            'title' => $validated['title'],
-            'description' => $validated['description'],
-            'latitude' => $validated['latitude'] ?? null,
-            'longitude' => $validated['longitude'] ?? null,
-            'category_id' => $validated['category_id'],
-            'priority' => $validated['priority'] ?? 'Moyenne',
-            'user_id' => auth()->id(),
-            'status' => 'En attente',
-        ]);
+        $data['user_id'] = auth()->id();
 
+        $data['status'] = 'En attente';
+
+        $data['priority'] = 'Moyenne';
+
+        $incident = Incident::create($data);
+
+        /*
+         * Upload image.
+         */
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('incidents', 'public');
+
+            $path = $request->file('image')
+                ->store('incidents', 'public');
 
             $incident->images()->create([
                 'image_path' => $path,
@@ -72,11 +77,14 @@ class IncidentController extends Controller
 
         return redirect()
             ->route('incidents.show', $incident)
-            ->with('success', 'Incident signalé avec succès !');
+            ->with(
+                'success',
+                'Incident signalé avec succès.'
+            );
     }
 
     /**
-     * عرض تفاصيل البلاغ.
+     * Afficher un incident.
      */
     public function show(Incident $incident): View
     {
@@ -90,16 +98,14 @@ class IncidentController extends Controller
             'affectations.technicien',
         ]);
 
-        // جلب التقنيين فقط
-        $techniciens = User::whereHas('roles', function ($query) {
-            $query->where('name', 'technicien');
-        })->orderBy('name')->get();
-
-        return view('incidents.show', compact('incident', 'techniciens'));
+        return view(
+            'incidents.show',
+            compact('incident')
+        );
     }
 
     /**
-     * عرض نموذج تعديل البلاغ.
+     * Page modification.
      */
     public function edit(Incident $incident): View
     {
@@ -107,33 +113,39 @@ class IncidentController extends Controller
 
         $categories = Category::orderBy('name')->get();
 
-        return view('incidents.edit', compact('incident', 'categories'));
+        $incident->load('images');
+
+        return view(
+            'incidents.edit',
+            compact(
+                'incident',
+                'categories'
+            )
+        );
     }
 
     /**
-     * تحديث البلاغ وتعديل الصورة.
+     * Modifier un incident.
      */
     public function update(
         UpdateIncidentRequest $request,
         Incident $incident
     ): RedirectResponse {
+
         $this->authorize('update', $incident);
 
-        $incident->update($request->validated());
+        $data = $request->validated();
 
-        // معالجة رفع/تحديث الصورة
+        $incident->update($data);
+
+        /*
+         * Nouvelle image.
+         */
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('incidents', 'public');
 
-            // حذف الصورة القديمة من الـ Storage والـ Database إن وجدت
-            if ($incident->images->isNotEmpty()) {
-                foreach ($incident->images as $oldImage) {
-                    Storage::disk('public')->delete($oldImage->image_path);
-                    $oldImage->delete();
-                }
-            }
+            $path = $request->file('image')
+                ->store('incidents', 'public');
 
-            // إنشاء سجل الصورة الجديدة
             $incident->images()->create([
                 'image_path' => $path,
             ]);
@@ -141,20 +153,42 @@ class IncidentController extends Controller
 
         return redirect()
             ->route('incidents.show', $incident)
-            ->with('success', 'Incident modifié avec succès !');
+            ->with(
+                'success',
+                'Incident modifié avec succès.'
+            );
     }
 
     /**
-     * حذف البلاغ.
+     * Supprimer un incident.
      */
     public function destroy(Incident $incident): RedirectResponse
     {
         $this->authorize('delete', $incident);
 
+        /*
+         * Supprimer les fichiers physiques.
+         */
+        foreach ($incident->images as $image) {
+
+            if (Storage::disk('public')->exists($image->image_path)) {
+                Storage::disk('public')
+                    ->delete($image->image_path);
+            }
+        }
+
+        /*
+         * Supprimer l'incident.
+         * Les relations doivent être configurées
+         * avec cascadeOnDelete si nécessaire.
+         */
         $incident->delete();
 
         return redirect()
             ->route('incidents.index')
-            ->with('success', 'Incident supprimé avec succès !');
+            ->with(
+                'success',
+                'Incident supprimé avec succès.'
+            );
     }
 }
