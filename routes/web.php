@@ -1,15 +1,75 @@
 <?php
 
 use App\Http\Controllers\AffectationController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IncidentController;
 use App\Http\Controllers\IncidentStatusController;
 use Illuminate\Support\Facades\Route;
 
+/*
+|--------------------------------------------------------------------------
+| Route principale
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/', function () {
+    return redirect()->route('dashboard');
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| Authentication
+|--------------------------------------------------------------------------
+*/
+
+// Afficher Login
+Route::get('/login', [AuthController::class, 'showLoginForm'])
+    ->middleware('guest')
+    ->name('login');
+
+// Traiter Login
+Route::post('/login', [AuthController::class, 'login'])
+    ->middleware('guest')
+    ->name('login.submit');
+
+// Afficher Register
+Route::get('/register', [AuthController::class, 'showRegisterForm'])
+    ->middleware('guest')
+    ->name('register');
+
+// Traiter Register
+Route::post('/register', [AuthController::class, 'register'])
+    ->middleware('guest')
+    ->name('register.submit');
+
+
+/*
+|--------------------------------------------------------------------------
+| Routes protégées par authentification
+|--------------------------------------------------------------------------
+*/
+
 Route::middleware('auth')->group(function () {
 
-    // Dashboard principal
+    /*
+    |--------------------------------------------------------------------------
+    | Logout
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post('/logout', [AuthController::class, 'logout'])
+        ->name('logout');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Dashboard principal
+    |--------------------------------------------------------------------------
+    */
+
     Route::get('/dashboard', function () {
 
         $user = auth()->user();
@@ -26,44 +86,101 @@ Route::middleware('auth')->group(function () {
             return redirect()->route('citoyen.dashboard');
         }
 
-        abort(403, 'Aucun rôle attribué à cet utilisateur.');
+        abort(
+            403,
+            'Aucun rôle attribué à cet utilisateur.'
+        );
 
     })->name('dashboard');
 
 
-    // Dashboards
-    Route::get('/citoyen/dashboard', [DashboardController::class, 'citoyen'])
+    /*
+    |--------------------------------------------------------------------------
+    | Dashboards
+    |--------------------------------------------------------------------------
+    */
+
+    // Dashboard Citoyen
+    Route::get(
+        '/citoyen/dashboard',
+        [DashboardController::class, 'citoyen']
+    )
         ->middleware('role:citoyen')
         ->name('citoyen.dashboard');
 
-    Route::get('/technicien/dashboard', [DashboardController::class, 'technicien'])
+
+    // Dashboard Technicien
+    Route::get(
+        '/technicien/dashboard',
+        [DashboardController::class, 'technicien']
+    )
         ->middleware('role:technicien')
         ->name('technicien.dashboard');
 
-    Route::get('/admin/dashboard', [DashboardController::class, 'admin'])
+
+    // Dashboard Administrateur
+    Route::get(
+        '/admin/dashboard',
+        [DashboardController::class, 'admin']
+    )
         ->middleware('role:administrateur')
         ->name('admin.dashboard');
 
 
-    // Incidents CRUD
-    Route::resource('incidents', IncidentController::class);
+    /*
+    |--------------------------------------------------------------------------
+    | Incidents CRUD
+    |--------------------------------------------------------------------------
+    */
+
+    Route::resource(
+        'incidents',
+        IncidentController::class
+    );
 
 
-    // Affectation
+    /*
+    |--------------------------------------------------------------------------
+    | Suppression d'une image
+    |--------------------------------------------------------------------------
+    */
+
+    Route::delete(
+        '/incidents/{incident}/images/{image}',
+        [IncidentController::class, 'destroyImage']
+    )->name('incidents.images.destroy');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Affectation d'un incident à un technicien
+    |--------------------------------------------------------------------------
+    */
+
     Route::post(
         '/incidents/{incident}/affectations',
         [AffectationController::class, 'store']
     )->name('incidents.assign');
 
 
-    // Changement du statut
+    /*
+    |--------------------------------------------------------------------------
+    | Changement du statut
+    |--------------------------------------------------------------------------
+    */
+
     Route::patch(
         '/incidents/{incident}/status',
-        [IncidentStatusController::class, 'update']
+        [IncidentStatusController::class, 'updateStatus']
     )->name('incidents.status.update');
 
 
-    // Commentaires
+    /*
+    |--------------------------------------------------------------------------
+    | Commentaires
+    |--------------------------------------------------------------------------
+    */
+
     Route::post(
         '/incidents/{incident}/comments',
         [CommentController::class, 'store']

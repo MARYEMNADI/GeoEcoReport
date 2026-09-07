@@ -13,7 +13,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
-
 class IncidentController extends Controller
 {
     use AuthorizesRequests;
@@ -57,9 +56,7 @@ class IncidentController extends Controller
         $data = $request->validated();
 
         $data['user_id'] = auth()->id();
-
         $data['status'] = 'En attente';
-
         $data['priority'] = 'Moyenne';
 
         $incident = Incident::create($data);
@@ -68,7 +65,6 @@ class IncidentController extends Controller
          * Upload image.
          */
         if ($request->hasFile('image')) {
-
             $path = $request->file('image')
                 ->store('incidents', 'public');
 
@@ -88,30 +84,31 @@ class IncidentController extends Controller
     /**
      * Afficher un incident.
      */
-   public function show(Incident $incident): View
-{
-    $this->authorize('view', $incident);
+    public function show(Incident $incident): View
+    {
+        $this->authorize('view', $incident);
 
-    $incident->load([
-        'category',
-        'user',
-        'images',
-        'comments.user',
-        'affectations.technicien',
-    ]);
+        $incident->load([
+            'category',
+            'user',
+            'images',
+            'comments.user',
+            'affectations.technicien',
+        ]);
 
-    $techniciens = User::whereHas(
-        'roles',
-        fn ($query) => $query->where('name', 'technicien')
-    )
-        ->orderBy('name')
-        ->get();
+        $techniciens = User::whereHas(
+            'roles',
+            fn ($query) => $query->where('name', 'technicien')
+        )
+            ->orderBy('name')
+            ->get();
 
-    return view(
-        'incidents.show',
-        compact('incident', 'techniciens')
-    );
-}
+        return view(
+            'incidents.show',
+            compact('incident', 'techniciens')
+        );
+    }
+
     /**
      * Page modification.
      */
@@ -139,7 +136,6 @@ class IncidentController extends Controller
         UpdateIncidentRequest $request,
         Incident $incident
     ): RedirectResponse {
-
         $this->authorize('update', $incident);
 
         $data = $request->validated();
@@ -150,7 +146,6 @@ class IncidentController extends Controller
          * Nouvelle image.
          */
         if ($request->hasFile('image')) {
-
             $path = $request->file('image')
                 ->store('incidents', 'public');
 
@@ -168,6 +163,48 @@ class IncidentController extends Controller
     }
 
     /**
+     * Supprimer une image d'un incident.
+     */
+    public function destroyImage(
+        Incident $incident,
+        IncidentImage $image
+    ): RedirectResponse {
+        /*
+         * Vérifier que l'image appartient bien
+         * à l'incident concerné.
+         */
+        if ($image->incident_id !== $incident->id) {
+            abort(404);
+        }
+
+        /*
+         * Vérifier les permissions.
+         */
+        $this->authorize('update', $incident);
+
+        /*
+         * Supprimer le fichier physique.
+         */
+        if ($image->image_path) {
+            Storage::disk('public')->delete(
+                $image->image_path
+            );
+        }
+
+        /*
+         * Supprimer l'image de la base de données.
+         */
+        $image->delete();
+
+        return redirect()
+            ->route('incidents.show', $incident)
+            ->with(
+                'success',
+                'La photo a été supprimée avec succès.'
+            );
+    }
+
+    /**
      * Supprimer un incident.
      */
     public function destroy(Incident $incident): RedirectResponse
@@ -178,17 +215,20 @@ class IncidentController extends Controller
          * Supprimer les fichiers physiques.
          */
         foreach ($incident->images as $image) {
-
-            if (Storage::disk('public')->exists($image->image_path)) {
-                Storage::disk('public')
-                    ->delete($image->image_path);
+            if (
+                $image->image_path &&
+                Storage::disk('public')->exists(
+                    $image->image_path
+                )
+            ) {
+                Storage::disk('public')->delete(
+                    $image->image_path
+                );
             }
         }
 
         /*
          * Supprimer l'incident.
-         * Les relations doivent être configurées
-         * avec cascadeOnDelete si nécessaire.
          */
         $incident->delete();
 
@@ -200,3 +240,4 @@ class IncidentController extends Controller
             );
     }
 }
+

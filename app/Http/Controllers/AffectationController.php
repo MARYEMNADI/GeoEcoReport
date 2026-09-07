@@ -5,14 +5,17 @@ namespace App\Http\Controllers;
 use App\Models\Affectation;
 use App\Models\Incident;
 use App\Models\User;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class AffectationController extends Controller
 {
+    use AuthorizesRequests;
+
     /**
-     * عرض نموذج إسناد البلاغ إلى تقني.
+     * عرض صفحة إسناد البلاغ إلى تقني.
      */
     public function create(Incident $incident): View
     {
@@ -25,19 +28,20 @@ class AffectationController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('affectations.create', compact(
-            'incident',
-            'techniciens'
-        ));
+        return view(
+            'affectations.create',
+            compact('incident', 'techniciens')
+        );
     }
 
     /**
-     * حفظ إسناد البلاغ إلى التقني.
+     * Enregistrer l'affectation d'un incident à un technicien.
      */
     public function store(
         Request $request,
         Incident $incident
     ): RedirectResponse {
+
         $this->authorize('assign', $incident);
 
         $validated = $request->validate([
@@ -48,7 +52,7 @@ class AffectationController extends Controller
             ],
 
             'date_affectation' => [
-                'required',
+                'nullable',
                 'date',
             ],
 
@@ -59,13 +63,21 @@ class AffectationController extends Controller
             ],
         ]);
 
+        // Vérifier que l'utilisateur sélectionné est bien un technicien
+        $technicien = User::whereHas(
+            'roles',
+            fn ($query) => $query->where('name', 'technicien')
+        )->findOrFail($validated['technicien_id']);
+
+        // Créer l'affectation
         Affectation::create([
             'incident_id' => $incident->id,
-            'technicien_id' => $validated['technicien_id'],
-            'date_affectation' => $validated['date_affectation'],
+            'technicien_id' => $technicien->id,
+            'date_affectation' => $validated['date_affectation'] ?? now(),
             'instructions' => $validated['instructions'] ?? null,
         ]);
 
+        // Modifier le statut de l'incident
         $incident->update([
             'status' => 'En cours de traitement',
         ]);

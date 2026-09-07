@@ -161,7 +161,6 @@
 
 
             {{-- Changement de statut --}}
-            {{-- Technicien + Administrateur uniquement --}}
 
             @can('changeStatus', $incident)
 
@@ -390,9 +389,19 @@
 
     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
 
-        <h2 class="text-xl font-bold text-gray-800 mb-5">
-            Photos
-        </h2>
+        <div class="flex items-center justify-between mb-5">
+
+            <h2 class="text-xl font-bold text-gray-800">
+                Photos
+            </h2>
+
+            <span class="text-sm text-gray-500">
+                {{ $incident->images->count() }}
+                {{ $incident->images->count() > 1 ? 'photos' : 'photo' }}
+            </span>
+
+        </div>
+
 
         @if ($incident->images->isNotEmpty())
 
@@ -402,11 +411,52 @@
 
                     <div class="border rounded-lg overflow-hidden bg-gray-50">
 
-                        <img
-                            src="{{ asset('storage/' . $image->image_path) }}"
-                            alt="Photo de {{ $incident->title }}"
-                            class="w-full h-56 object-cover"
+                        {{-- Image clickable --}}
+
+                        <button
+                            type="button"
+                            onclick="openImageModal('{{ asset('storage/' . $image->image_path) }}')"
+                            class="block w-full text-left"
                         >
+
+                            <img
+                                src="{{ asset('storage/' . $image->image_path) }}"
+                                alt="Photo de {{ $incident->title }}"
+                                class="w-full h-56 object-cover hover:scale-105 transition duration-300 cursor-zoom-in"
+                            >
+
+                        </button>
+
+
+                        {{-- Actions de l'image --}}
+
+                        @can('update', $incident)
+
+                            <div class="p-3 bg-white border-t">
+
+                                <form
+                                    action="{{ route('incidents.images.destroy', [$incident, $image]) }}"
+                                    method="POST"
+                                    onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette photo ?');"
+                                >
+
+                                    @csrf
+                                    @method('DELETE')
+
+                                   <button
+    type="submit"
+    title="Supprimer cette photo"
+    aria-label="Supprimer cette photo"
+    class="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-lg font-semibold rounded-md"
+>
+    🗑️
+                          </button>
+
+                                </form>
+
+                            </div>
+
+                        @endcan
 
                     </div>
 
@@ -421,6 +471,47 @@
             </p>
 
         @endif
+
+    </div>
+
+
+    {{-- =========================
+         Modal Image
+    ========================== --}}
+
+    <div
+        id="imageModal"
+        class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+        onclick="closeImageModal()"
+    >
+
+        <div
+            class="relative max-w-6xl max-h-[90vh]"
+            onclick="event.stopPropagation()"
+        >
+
+            {{-- Close button --}}
+
+            <button
+                type="button"
+                onclick="closeImageModal()"
+                class="absolute -top-12 right-0 text-white text-3xl font-bold hover:text-gray-300"
+                aria-label="Fermer"
+            >
+                ✕
+            </button>
+
+
+            {{-- Grande image --}}
+
+            <img
+                id="modalImage"
+                src=""
+                alt="Photo agrandie"
+                class="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain"
+            >
+
+        </div>
 
     </div>
 
@@ -746,6 +837,53 @@
     @endif
 
 </div>
+
+
+{{-- =========================
+     JavaScript
+========================== --}}
+
+<script>
+
+    function openImageModal(imageUrl) {
+
+        const modal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+
+        modalImage.src = imageUrl;
+
+        modal.classList.remove('hidden');
+
+        document.body.classList.add('overflow-hidden');
+    }
+
+
+    function closeImageModal() {
+
+        const modal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+
+        modal.classList.add('hidden');
+
+        modalImage.src = '';
+
+        document.body.classList.remove('overflow-hidden');
+    }
+
+
+    // Fermer avec la touche ESC
+
+    document.addEventListener('keydown', function(event) {
+
+        if (event.key === 'Escape') {
+
+            closeImageModal();
+
+        }
+
+    });
+
+</script>
 
 </body>
 </html>
