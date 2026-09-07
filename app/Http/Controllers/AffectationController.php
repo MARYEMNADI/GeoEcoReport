@@ -21,7 +21,9 @@ class AffectationController extends Controller
         $techniciens = User::whereHas(
             'roles',
             fn ($query) => $query->where('name', 'technicien')
-        )->orderBy('name')->get();
+        )
+            ->orderBy('name')
+            ->get();
 
         return view('affectations.create', compact(
             'incident',
@@ -32,9 +34,11 @@ class AffectationController extends Controller
     /**
      * حفظ إسناد البلاغ إلى التقني.
      */
-    public function store(Request $request, Incident $incident): RedirectResponse
-    {
-        $this->authorize('update', $incident);
+    public function store(
+        Request $request,
+        Incident $incident
+    ): RedirectResponse {
+        $this->authorize('assign', $incident);
 
         $validated = $request->validate([
             'technicien_id' => [

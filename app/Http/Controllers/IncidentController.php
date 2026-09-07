@@ -7,10 +7,12 @@ use App\Http\Requests\UpdateIncidentRequest;
 use App\Models\Category;
 use App\Models\Incident;
 use App\Models\IncidentImage;
+use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+
 
 class IncidentController extends Controller
 {
@@ -86,24 +88,30 @@ class IncidentController extends Controller
     /**
      * Afficher un incident.
      */
-    public function show(Incident $incident): View
-    {
-        $this->authorize('view', $incident);
+   public function show(Incident $incident): View
+{
+    $this->authorize('view', $incident);
 
-        $incident->load([
-            'category',
-            'user',
-            'images',
-            'comments.user',
-            'affectations.technicien',
-        ]);
+    $incident->load([
+        'category',
+        'user',
+        'images',
+        'comments.user',
+        'affectations.technicien',
+    ]);
 
-        return view(
-            'incidents.show',
-            compact('incident')
-        );
-    }
+    $techniciens = User::whereHas(
+        'roles',
+        fn ($query) => $query->where('name', 'technicien')
+    )
+        ->orderBy('name')
+        ->get();
 
+    return view(
+        'incidents.show',
+        compact('incident', 'techniciens')
+    );
+}
     /**
      * Page modification.
      */
