@@ -18,7 +18,7 @@ class IncidentController extends Controller
     use AuthorizesRequests;
 
     /**
-     * عرض جميع الحوادث.
+     * Afficher tous les incidents.
      */
     public function index(): View
     {
@@ -27,15 +27,19 @@ class IncidentController extends Controller
         $incidents = Incident::with([
             'category',
             'user',
+            'images',
         ])
             ->latest()
             ->paginate(10);
 
-        return view('incidents.index', compact('incidents'));
+        return view(
+            'incidents.index',
+            compact('incidents')
+        );
     }
 
     /**
-     * صفحة إنشاء حادث.
+     * Page de création d'un incident.
      */
     public function create(): View
     {
@@ -43,14 +47,19 @@ class IncidentController extends Controller
 
         $categories = Category::orderBy('name')->get();
 
-        return view('incidents.create', compact('categories'));
+        return view(
+            'incidents.create',
+            compact('categories')
+        );
     }
 
     /**
-     * حفظ حادث جديد.
+     * Enregistrer un nouvel incident.
      */
-    public function store(StoreIncidentRequest $request): RedirectResponse
-    {
+    public function store(
+        StoreIncidentRequest $request
+    ): RedirectResponse {
+
         $this->authorize('create', Incident::class);
 
         $data = $request->validated();
@@ -62,9 +71,10 @@ class IncidentController extends Controller
         $incident = Incident::create($data);
 
         /*
-         * Upload image.
+         * Upload de l'image.
          */
         if ($request->hasFile('image')) {
+
             $path = $request->file('image')
                 ->store('incidents', 'public');
 
@@ -84,8 +94,10 @@ class IncidentController extends Controller
     /**
      * Afficher un incident.
      */
-    public function show(Incident $incident): View
-    {
+    public function show(
+        Incident $incident
+    ): View {
+
         $this->authorize('view', $incident);
 
         $incident->load([
@@ -98,23 +110,34 @@ class IncidentController extends Controller
 
         $techniciens = User::whereHas(
             'roles',
-            fn ($query) => $query->where('name', 'technicien')
+            fn ($query) => $query->where(
+                'name',
+                'technicien'
+            )
         )
             ->orderBy('name')
             ->get();
 
         return view(
             'incidents.show',
-            compact('incident', 'techniciens')
+            compact(
+                'incident',
+                'techniciens'
+            )
         );
     }
 
     /**
-     * Page modification.
+     * Page de modification.
      */
-    public function edit(Incident $incident): View
-    {
-        $this->authorize('update', $incident);
+    public function edit(
+        Incident $incident
+    ): View {
+
+        $this->authorize(
+            'update',
+            $incident
+        );
 
         $categories = Category::orderBy('name')->get();
 
@@ -136,16 +159,21 @@ class IncidentController extends Controller
         UpdateIncidentRequest $request,
         Incident $incident
     ): RedirectResponse {
-        $this->authorize('update', $incident);
+
+        $this->authorize(
+            'update',
+            $incident
+        );
 
         $data = $request->validated();
 
         $incident->update($data);
 
         /*
-         * Nouvelle image.
+         * Ajouter une nouvelle image.
          */
         if ($request->hasFile('image')) {
+
             $path = $request->file('image')
                 ->store('incidents', 'public');
 
@@ -155,7 +183,10 @@ class IncidentController extends Controller
         }
 
         return redirect()
-            ->route('incidents.show', $incident)
+            ->route(
+                'incidents.show',
+                $incident
+            )
             ->with(
                 'success',
                 'Incident modifié avec succès.'
@@ -163,15 +194,16 @@ class IncidentController extends Controller
     }
 
     /**
-     * Supprimer une image d'un incident.
+     * Supprimer une image.
      */
     public function destroyImage(
         Incident $incident,
         IncidentImage $image
     ): RedirectResponse {
+
         /*
-         * Vérifier que l'image appartient bien
-         * à l'incident concerné.
+         * Vérifier que l'image appartient
+         * bien à cet incident.
          */
         if ($image->incident_id !== $incident->id) {
             abort(404);
@@ -180,24 +212,36 @@ class IncidentController extends Controller
         /*
          * Vérifier les permissions.
          */
-        $this->authorize('update', $incident);
+        $this->authorize(
+            'update',
+            $incident
+        );
 
         /*
          * Supprimer le fichier physique.
          */
-        if ($image->image_path) {
+        if (
+            $image->image_path &&
+            Storage::disk('public')->exists(
+                $image->image_path
+            )
+        ) {
             Storage::disk('public')->delete(
                 $image->image_path
             );
         }
 
         /*
-         * Supprimer l'image de la base de données.
+         * Supprimer l'enregistrement
+         * de la base de données.
          */
         $image->delete();
 
         return redirect()
-            ->route('incidents.show', $incident)
+            ->route(
+                'incidents.show',
+                $incident
+            )
             ->with(
                 'success',
                 'La photo a été supprimée avec succès.'
@@ -207,14 +251,21 @@ class IncidentController extends Controller
     /**
      * Supprimer un incident.
      */
-    public function destroy(Incident $incident): RedirectResponse
-    {
-        $this->authorize('delete', $incident);
+    public function destroy(
+        Incident $incident
+    ): RedirectResponse {
+
+        $this->authorize(
+            'delete',
+            $incident
+        );
 
         /*
-         * Supprimer les fichiers physiques.
+         * Supprimer toutes les images
+         * liées à l'incident.
          */
         foreach ($incident->images as $image) {
+
             if (
                 $image->image_path &&
                 Storage::disk('public')->exists(
@@ -240,4 +291,3 @@ class IncidentController extends Controller
             );
     }
 }
-
