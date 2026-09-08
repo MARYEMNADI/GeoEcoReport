@@ -6,6 +6,7 @@ use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IncidentController;
 use App\Http\Controllers\IncidentStatusController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -185,5 +186,25 @@ Route::middleware('auth')->group(function () {
         '/incidents/{incident}/comments',
         [CommentController::class, 'store']
     )->name('comments.store');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notifications
+    |--------------------------------------------------------------------------
+    */
+
+    // Marquer toutes les notifications comme lues
+    Route::patch(
+        '/notifications/read-all',
+        [NotificationController::class, 'markAllAsRead']
+    )->name('notifications.read-all');
+
+
+    // Marquer une notification comme lue
+    Route::patch(
+        '/notifications/{id}/read',
+        [NotificationController::class, 'markAsRead']
+    )->name('notifications.read');
 
 });
