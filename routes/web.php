@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IncidentController;
 use App\Http\Controllers\IncidentStatusController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\AssistantController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -206,5 +207,19 @@ Route::middleware('auth')->group(function () {
         '/notifications/{id}/read',
         [NotificationController::class, 'markAsRead']
     )->name('notifications.read');
+        /*
+    |--------------------------------------------------------------------------
+    | Assistant GeoEco
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/assistant', [AssistantController::class, 'index'])
+        ->name('assistant.index');
+
+    Route::post('/assistant/ask', [AssistantController::class, 'ask'])
+        ->name('assistant.ask');
+
+    Route::post('/assistant/clear', [AssistantController::class, 'clear'])
+        ->name('assistant.clear');
 
 });
