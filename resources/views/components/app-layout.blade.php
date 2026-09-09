@@ -361,7 +361,9 @@
                 dropdown.classList.add('hidden');
 
             }
-
+<a href="{{ route('map.index') }}" class="text-sm text-gray-600 hover:text-green-600">
+    Carte
+</a>
         });
 
     </script>

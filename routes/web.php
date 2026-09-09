@@ -2,13 +2,16 @@
 
 use App\Http\Controllers\AffectationController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IncidentController;
 use App\Http\Controllers\IncidentStatusController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\AssistantController;
+use App\Http\Controllers\MapController;
 use Illuminate\Support\Facades\Route;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -55,6 +58,7 @@ Route::post('/register', [AuthController::class, 'register'])
 */
 
 Route::middleware('auth')->group(function () {
+
 
     /*
     |--------------------------------------------------------------------------
@@ -207,19 +211,55 @@ Route::middleware('auth')->group(function () {
         '/notifications/{id}/read',
         [NotificationController::class, 'markAsRead']
     )->name('notifications.read');
-        /*
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Catégories
+    |--------------------------------------------------------------------------
+    */
+
+    Route::resource(
+        'categories',
+        CategoryController::class
+    )->except([
+        'show'
+    ]);
+
+
+    /*
     |--------------------------------------------------------------------------
     | Assistant GeoEco
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/assistant', [AssistantController::class, 'index'])
-        ->name('assistant.index');
+    Route::get(
+        '/assistant',
+        [AssistantController::class, 'index']
+    )->name('assistant.index');
 
-    Route::post('/assistant/ask', [AssistantController::class, 'ask'])
-        ->name('assistant.ask');
 
-    Route::post('/assistant/clear', [AssistantController::class, 'clear'])
-        ->name('assistant.clear');
+    Route::post(
+        '/assistant/ask',
+        [AssistantController::class, 'ask']
+    )->name('assistant.ask');
+
+
+    Route::post(
+        '/assistant/clear',
+        [AssistantController::class, 'clear']
+    )->name('assistant.clear');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Carte des incidents
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/map',
+        [MapController::class, 'index']
+    )->name('map.index');
 
 });

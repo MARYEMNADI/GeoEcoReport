@@ -1,5 +1,4 @@
 services:
-
   app:
     build:
       context: .
@@ -7,12 +6,29 @@ services:
     image: geoecoreport-app
     container_name: geoecoreport-app
     restart: unless-stopped
-    tty: true
     working_dir: /var/www
     ports:
       - "8000:8000"
     volumes:
       - .:/var/www
+      - /var/www/vendor
+      - /var/www/public/build
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: geoecoreport
+      DB_USERNAME: geoeco
+      DB_PASSWORD: geoeco
+      SESSION_DRIVER: file
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - geoeco-network
 
@@ -20,15 +36,20 @@ services:
     image: mysql:8.0
     container_name: geoecoreport-db
     restart: unless-stopped
-    tty: true
     ports:
       - "3308:3306"
     environment:
       MYSQL_DATABASE: geoecoreport
+      MYSQL_USER: geoeco
+      MYSQL_PASSWORD: geoeco
       MYSQL_ROOT_PASSWORD: root
-      
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
     networks:
       - geoeco-network
 
