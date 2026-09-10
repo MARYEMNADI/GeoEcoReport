@@ -16,7 +16,7 @@ class AffectationController extends Controller
     use AuthorizesRequests;
 
     /**
-     * عرض صفحة إسناد البلاغ إلى تقني.
+     * Afficher la page d'affectation.
      */
     public function create(Incident $incident): View
     {
@@ -36,10 +36,12 @@ class AffectationController extends Controller
     }
 
     /**
-     * Enregistrer l'affectation d'un incident à un technicien.
+     * Affecter un incident à un technicien.
      */
-    public function store(Request $request, Incident $incident): RedirectResponse
-    {
+    public function store(
+        Request $request,
+        Incident $incident
+    ): RedirectResponse {
         $this->authorize('assign', $incident);
 
         $validated = $request->validate([
@@ -48,10 +50,12 @@ class AffectationController extends Controller
                 'integer',
                 'exists:users,id',
             ],
+
             'date_affectation' => [
                 'nullable',
                 'date',
             ],
+
             'instructions' => [
                 'nullable',
                 'string',
@@ -59,31 +63,40 @@ class AffectationController extends Controller
             ],
         ]);
 
+        // Vérifier que l'utilisateur sélectionné est bien technicien
         $technicien = User::whereHas(
             'roles',
             fn ($query) => $query->where('name', 'technicien')
         )->findOrFail($validated['technicien_id']);
 
+        // Créer l'affectation
         Affectation::create([
-            'incident_id'      => $incident->id,
-            'technicien_id'    => $technicien->id,
+            'incident_id' => $incident->id,
+            'technicien_id' => $technicien->id,
             'date_affectation' => $validated['date_affectation'] ?? now(),
-            'instructions'     => $validated['instructions'] ?? null,
+            'instructions' => $validated['instructions'] ?? null,
         ]);
 
+        // Changer le statut
         $incident->update([
             'status' => 'En cours de traitement',
         ]);
 
-        // === Notifications ===
-        $technicien->notify(new IncidentAssigned($incident));
+        /*
+        |--------------------------------------------------------------------------
+        | Notification au technicien
+        |--------------------------------------------------------------------------
+        */
 
-        if ($incident->user_id !== $technicien->id) {
-            $incident->user->notify(new IncidentAssigned($incident));
-        }
+        $technicien->notify(
+            new IncidentAssigned($incident)
+        );
 
         return redirect()
             ->route('incidents.show', $incident)
-            ->with('success', 'Incident affecté au technicien avec succès.');
+            ->with(
+                'success',
+                'Incident affecté au technicien avec succès.'
+            );
     }
 }

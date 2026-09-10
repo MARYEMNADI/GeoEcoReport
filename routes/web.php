@@ -131,7 +131,13 @@ Route::middleware('auth')->group(function () {
     )
         ->middleware('role:administrateur')
         ->name('admin.dashboard');
-
+         /*
+    |--------------------------------------------------------------------------
+    | Carte des incidents
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/map', [MapController::class, 'index'])
+        ->name('map.index');
 
     /*
     |--------------------------------------------------------------------------

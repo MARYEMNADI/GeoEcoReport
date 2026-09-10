@@ -1,110 +1,292 @@
-<!DOCTYPE html>
-<html lang="fr">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>{{ $incident->title }} - GeoEcoReport</title>
-
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-
-<body class="bg-gray-100 min-h-screen py-10 px-6">
-
-<div class="max-w-5xl mx-auto">
-
-    {{-- =========================
-         Messages
-    ========================== --}}
-
-    @if (session('success'))
-        <div class="mb-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-md">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md">
-            {{ session('error') }}
-        </div>
-    @endif
-
-    @if ($errors->any())
-        <div class="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md">
-            <ul class="list-disc pl-5">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
+<x-app-layout>
 
     {{-- =========================
          Header
     ========================== --}}
 
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <x-slot name="header">
 
-        <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+        <div class="flex items-center justify-between">
 
             <div>
 
-                <p class="text-sm text-gray-500 mb-2">
+                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                    Détails de l'incident
+                </h2>
+
+                <p class="text-sm text-gray-500 mt-1">
                     Incident #{{ $incident->id }}
-                </p>
-
-                <h1 class="text-3xl font-bold text-gray-800">
-                    {{ $incident->title }}
-                </h1>
-
-                <p class="text-sm text-gray-500 mt-2">
-                    Signalé le {{ $incident->created_at->format('d/m/Y à H:i') }}
                 </p>
 
             </div>
 
+            <a
+                href="{{ route('incidents.index') }}"
+                class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-md"
+            >
+                ← Liste
+            </a>
 
-            {{-- Actions --}}
+        </div>
 
-            <div class="flex flex-wrap gap-2">
-
-                <a
-                    href="{{ route('incidents.index') }}"
-                    class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-md"
-                >
-                    ← Retour
-                </a>
+    </x-slot>
 
 
-                @can('update', $incident)
+    {{-- =========================
+         Contenu
+    ========================== --}}
+
+    <div class="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+
+
+        {{-- =========================
+             Messages
+        ========================== --}}
+
+        @if (session('success'))
+
+            <div class="mb-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-md">
+                {{ session('success') }}
+            </div>
+
+        @endif
+
+
+        @if (session('error'))
+
+            <div class="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md">
+                {{ session('error') }}
+            </div>
+
+        @endif
+
+
+        @if ($errors->any())
+
+            <div class="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md">
+
+                <ul class="list-disc pl-5">
+
+                    @foreach ($errors->all() as $error)
+
+                        <li>
+                            {{ $error }}
+                        </li>
+
+                    @endforeach
+
+                </ul>
+
+            </div>
+
+        @endif
+
+
+        {{-- =========================
+             Header incident
+        ========================== --}}
+
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+
+            <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+
+                <div>
+
+                    <p class="text-sm text-gray-500 mb-2">
+                        Incident #{{ $incident->id }}
+                    </p>
+
+                    <h1 class="text-3xl font-bold text-gray-800">
+                        {{ $incident->title }}
+                    </h1>
+
+                    <p class="text-sm text-gray-500 mt-2">
+                        Signalé le
+                        {{ $incident->created_at->format('d/m/Y à H:i') }}
+                    </p>
+
+                </div>
+
+
+                {{-- =========================
+                     Actions
+                ========================== --}}
+
+                <div class="flex flex-wrap gap-2">
+
+                    {{-- Retour --}}
 
                     <a
-                        href="{{ route('incidents.edit', $incident) }}"
-                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md"
+                        href="{{ route('incidents.index') }}"
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-md"
                     >
-                        Modifier
+                        ← Retour
                     </a>
 
-                @endcan
+
+                    {{-- Modifier --}}
+
+                    @can('update', $incident)
+
+                        <a
+                            href="{{ route('incidents.edit', ['incident' => $incident->id]) }}"
+                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md"
+                        >
+                            Modifier
+                        </a>
+
+                    @endcan
 
 
-                @can('delete', $incident)
+                    {{-- Supprimer --}}
+
+                    @can('delete', $incident)
+
+                        <form
+                            action="{{ route('incidents.destroy', $incident) }}"
+                            method="POST"
+                            onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet incident ?');"
+                        >
+
+                            @csrf
+
+                            @method('DELETE')
+
+                            <button
+                                type="submit"
+                                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md"
+                            >
+                                Supprimer
+                            </button>
+
+                        </form>
+
+                    @endcan
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        {{-- =========================
+             Statut / Priorité / Catégorie
+        ========================== --}}
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+
+
+            {{-- =========================
+                 Statut
+            ========================== --}}
+
+            <div class="bg-white rounded-lg shadow p-6">
+
+                <p class="text-sm text-gray-500 mb-2">
+                    Statut
+                </p>
+
+
+                @php
+
+                    $statusClasses = match($incident->status) {
+
+                        'En attente'
+                            => 'bg-yellow-100 text-yellow-800',
+
+                        'En cours de traitement'
+                            => 'bg-blue-100 text-blue-800',
+
+                        'Résolu'
+                            => 'bg-green-100 text-green-800',
+
+                        'Rejeté'
+                            => 'bg-red-100 text-red-800',
+
+                        default
+                            => 'bg-gray-100 text-gray-800',
+
+                    };
+
+                @endphp
+
+
+                <span
+                    class="inline-flex px-3 py-1 text-sm font-semibold rounded-full {{ $statusClasses }}"
+                >
+                    {{ $incident->status }}
+                </span>
+
+
+                {{-- Changement de statut --}}
+
+                @can('changeStatus', $incident)
 
                     <form
-                        action="{{ route('incidents.destroy', $incident) }}"
+                        action="{{ route('incidents.status.update', $incident) }}"
                         method="POST"
-                        onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet incident ?');"
+                        class="mt-4"
                     >
+
                         @csrf
-                        @method('DELETE')
+
+                        @method('PATCH')
+
+
+                        <label
+                            for="status"
+                            class="block text-sm font-medium text-gray-700 mb-2"
+                        >
+                            Modifier le statut
+                        </label>
+
+
+                        <select
+                            id="status"
+                            name="status"
+                            class="w-full border-gray-300 rounded-md shadow-sm"
+                        >
+
+                            <option
+                                value="En attente"
+                                {{ $incident->status === 'En attente' ? 'selected' : '' }}
+                            >
+                                En attente
+                            </option>
+
+
+                            <option
+                                value="En cours de traitement"
+                                {{ $incident->status === 'En cours de traitement' ? 'selected' : '' }}
+                            >
+                                En cours de traitement
+                            </option>
+
+
+                            <option
+                                value="Résolu"
+                                {{ $incident->status === 'Résolu' ? 'selected' : '' }}
+                            >
+                                Résolu
+                            </option>
+
+
+                            <option
+                                value="Rejeté"
+                                {{ $incident->status === 'Rejeté' ? 'selected' : '' }}
+                            >
+                                Rejeté
+                            </option>
+
+                        </select>
+
 
                         <button
                             type="submit"
-                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md"
+                            class="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
                         >
-                            Supprimer
+                            Mettre à jour
                         </button>
 
                     </form>
@@ -113,362 +295,680 @@
 
             </div>
 
+
+            {{-- =========================
+                 Priorité
+            ========================== --}}
+
+            <div class="bg-white rounded-lg shadow p-6">
+
+                <p class="text-sm text-gray-500 mb-2">
+                    Priorité
+                </p>
+
+
+                @php
+
+                    $priorityClasses = match($incident->priority) {
+
+                        'Urgente'
+                            => 'bg-red-100 text-red-800',
+
+                        'Élevée'
+                            => 'bg-orange-100 text-orange-800',
+
+                        'Moyenne'
+                            => 'bg-yellow-100 text-yellow-800',
+
+                        'Faible'
+                            => 'bg-blue-100 text-blue-800',
+
+                        default
+                            => 'bg-gray-100 text-gray-800',
+
+                    };
+
+                @endphp
+
+
+                <span
+                    class="inline-flex px-3 py-1 text-sm font-semibold rounded-full {{ $priorityClasses }}"
+                >
+                    {{ $incident->priority ?? 'Moyenne' }}
+                </span>
+
+            </div>
+
+
+            {{-- =========================
+                 Catégorie
+            ========================== --}}
+
+            <div class="bg-white rounded-lg shadow p-6">
+
+                <p class="text-sm text-gray-500 mb-2">
+                    Catégorie
+                </p>
+
+
+                <p class="text-lg font-semibold text-green-600">
+                    {{ $incident->category->name ?? 'Non spécifiée' }}
+                </p>
+
+
+                @if ($incident->category)
+
+                    <p class="text-xs text-gray-500 mt-1">
+                        {{ $incident->category->type }}
+                    </p>
+
+                @endif
+
+            </div>
+
         </div>
 
-    </div>
+
+        {{-- =========================
+             Informations
+        ========================== --}}
+
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+
+            <h2 class="text-xl font-bold text-gray-800 mb-5">
+                Informations sur l'incident
+            </h2>
 
 
-    {{-- =========================
-         Statut / Priorité / Catégorie
-    ========================== --}}
+            {{-- =========================
+                 Description
+            ========================== --}}
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="mb-6">
+
+                <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">
+                    Description
+                </h3>
+
+                <p class="text-gray-700 leading-relaxed whitespace-pre-line">
+                    {{ $incident->description }}
+                </p>
+
+            </div>
 
 
-        {{-- Statut --}}
+            {{-- =========================
+                 Signaleur
+            ========================== --}}
 
-        <div class="bg-white rounded-lg shadow p-6">
+            <div class="mb-6">
 
-            <p class="text-sm text-gray-500 mb-2">
-                Statut
-            </p>
+                <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">
+                    Signalé par
+                </h3>
 
-            @php
-                $statusClasses = match($incident->status) {
+                <p class="text-gray-700">
+                    {{ $incident->user->name ?? 'Anonyme' }}
+                </p>
 
-                    'En attente'
-                        => 'bg-yellow-100 text-yellow-800',
 
-                    'En cours de traitement'
-                        => 'bg-blue-100 text-blue-800',
+                @if ($incident->user)
 
-                    'Résolu'
-                        => 'bg-green-100 text-green-800',
+                    <p class="text-sm text-gray-500">
+                        {{ $incident->user->email }}
+                    </p>
 
-                    'Rejeté'
-                        => 'bg-red-100 text-red-800',
+                @endif
 
-                    default
-                        => 'bg-gray-100 text-gray-800',
-                };
-            @endphp
+            </div>
 
-            <span
-                class="inline-flex px-3 py-1 text-sm font-semibold rounded-full {{ $statusClasses }}"
+
+            {{-- =========================
+                 Localisation
+            ========================== --}}
+
+            <div>
+
+                <h3 class="text-sm font-semibold text-gray-500 uppercase mb-3">
+                    Localisation
+                </h3>
+
+
+                {{-- =========================
+                     Carte Leaflet
+                ========================== --}}
+
+                @if ($incident->latitude !== null && $incident->longitude !== null)
+
+                    <div
+                        id="incident-map"
+                        class="w-full h-80 rounded-xl border border-gray-300 mb-4 overflow-hidden"
+                    ></div>
+
+                @else
+
+                    <div class="bg-gray-50 border rounded-md p-4 mb-4">
+
+                        <p class="text-gray-500">
+                            Aucune localisation disponible pour cet incident.
+                        </p>
+
+                    </div>
+
+                @endif
+
+
+                {{-- =========================
+                     Coordonnées
+                ========================== --}}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+
+                    {{-- Latitude --}}
+
+                    <div class="bg-gray-50 border rounded-md p-4">
+
+                        <p class="text-xs text-gray-500">
+                            Latitude
+                        </p>
+
+                        <p class="font-semibold text-gray-800">
+                            {{ $incident->latitude ?? 'Non renseignée' }}
+                        </p>
+
+                    </div>
+
+
+                    {{-- Longitude --}}
+
+                    <div class="bg-gray-50 border rounded-md p-4">
+
+                        <p class="text-xs text-gray-500">
+                            Longitude
+                        </p>
+
+                        <p class="font-semibold text-gray-800">
+                            {{ $incident->longitude ?? 'Non renseignée' }}
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        {{-- =========================
+             Photos
+        ========================== --}}
+
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+
+            <div class="flex items-center justify-between mb-5">
+
+                <h2 class="text-xl font-bold text-gray-800">
+                    Photos
+                </h2>
+
+                <span class="text-sm text-gray-500">
+
+                    {{ $incident->images->count() }}
+
+                    {{ $incident->images->count() > 1 ? 'photos' : 'photo' }}
+
+                </span>
+
+            </div>
+
+
+            @if ($incident->images->isNotEmpty())
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+
+                    @foreach ($incident->images as $image)
+
+                        <div class="border rounded-lg overflow-hidden bg-gray-50">
+
+
+                            {{-- Image --}}
+
+                            <button
+                                type="button"
+                                onclick="openImageModal('{{ asset('storage/' . $image->image_path) }}')"
+                                class="block w-full text-left"
+                            >
+
+                                <img
+                                    src="{{ asset('storage/' . $image->image_path) }}"
+                                    alt="Photo de {{ $incident->title }}"
+                                    class="w-full h-56 object-cover hover:scale-105 transition duration-300 cursor-zoom-in"
+                                >
+
+                            </button>
+
+
+                            {{-- Suppression image --}}
+
+                            @can('update', $incident)
+
+                                <div class="p-3 bg-white border-t">
+
+                                    <form
+                                        action="{{ route('incidents.images.destroy', [$incident, $image]) }}"
+                                        method="POST"
+                                        onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette photo ?');"
+                                    >
+
+                                        @csrf
+
+                                        @method('DELETE')
+
+
+                                        <button
+                                            type="submit"
+                                            title="Supprimer cette photo"
+                                            aria-label="Supprimer cette photo"
+                                            class="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-lg font-semibold rounded-md"
+                                        >
+                                            🗑️
+                                        </button>
+
+                                    </form>
+
+                                </div>
+
+                            @endcan
+
+                        </div>
+
+                    @endforeach
+
+                </div>
+
+            @else
+
+                <p class="text-gray-500">
+                    Aucune photo disponible pour cet incident.
+                </p>
+
+            @endif
+
+        </div>
+
+
+        {{-- =========================
+             Modal Image
+        ========================== --}}
+
+        <div
+            id="imageModal"
+            class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+            onclick="closeImageModal()"
+        >
+
+            <div
+                class="relative max-w-6xl max-h-[90vh]"
+                onclick="event.stopPropagation()"
             >
-                {{ $incident->status }}
-            </span>
+
+                <button
+                    type="button"
+                    onclick="closeImageModal()"
+                    class="absolute -top-12 right-0 text-white text-3xl font-bold hover:text-gray-300"
+                    aria-label="Fermer"
+                >
+                    ✕
+                </button>
 
 
-            {{-- Changement de statut --}}
+                <img
+                    id="modalImage"
+                    src=""
+                    alt="Photo agrandie"
+                    class="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain"
+                >
 
-            @can('changeStatus', $incident)
+            </div>
+
+        </div>
+
+
+        {{-- =========================
+             GeoEco Assistant
+        ========================== --}}
+
+        @if ($incident->ai_summary || $incident->ai_suggested_category)
+
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+
+                <h2 class="text-xl font-bold text-gray-800 mb-5">
+                    GeoEco Assistant
+                </h2>
+
+
+                @if ($incident->ai_summary)
+
+                    <div class="mb-4">
+
+                        <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">
+                            Résumé IA
+                        </h3>
+
+                        <p class="text-gray-700 leading-relaxed">
+                            {{ $incident->ai_summary }}
+                        </p>
+
+                    </div>
+
+                @endif
+
+
+                @if ($incident->ai_suggested_category)
+
+                    <div>
+
+                        <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">
+                            Catégorie suggérée par l'IA
+                        </h3>
+
+                        <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-purple-100 text-purple-800">
+                            {{ $incident->ai_suggested_category }}
+                        </span>
+
+                    </div>
+
+                @endif
+
+            </div>
+
+        @endif
+
+
+        {{-- =========================
+             Commentaires
+        ========================== --}}
+
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+
+            <h2 class="text-xl font-bold text-gray-800 mb-5">
+                Commentaires
+            </h2>
+
+
+            {{-- Liste commentaires --}}
+
+            <div class="space-y-4 mb-6">
+
+                @forelse ($incident->comments as $comment)
+
+                    <div class="p-4 bg-gray-50 rounded-md border">
+
+                        <div class="flex justify-between items-center mb-1">
+
+                            <span class="font-semibold text-gray-800">
+                                {{ $comment->user->name ?? 'Utilisateur' }}
+                            </span>
+
+                            <span class="text-xs text-gray-500">
+                                {{ $comment->created_at->format('d/m/Y H:i') }}
+                            </span>
+
+                        </div>
+
+
+                        <p class="text-gray-700 text-sm whitespace-pre-line">
+                            {{ $comment->content }}
+                        </p>
+
+                    </div>
+
+                @empty
+
+                    <p class="text-gray-500 text-sm">
+                        Aucun commentaire pour le moment.
+                    </p>
+
+                @endforelse
+
+            </div>
+
+
+            {{-- Ajouter commentaire --}}
+
+            @auth
 
                 <form
-                    action="{{ route('incidents.status.update', $incident) }}"
+                    action="{{ route('comments.store', $incident) }}"
                     method="POST"
-                    class="mt-4"
                 >
 
                     @csrf
-                    @method('PATCH')
 
-                    <label
-                        for="status"
-                        class="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                        Modifier le statut
-                    </label>
 
-                    <select
-                        id="status"
-                        name="status"
-                        class="w-full border-gray-300 rounded-md shadow-sm"
-                    >
+                    <div class="mb-3">
 
-                        <option
-                            value="En attente"
-                            {{ $incident->status === 'En attente' ? 'selected' : '' }}
+                        <label
+                            for="content"
+                            class="block text-sm font-medium text-gray-700 mb-1"
                         >
-                            En attente
-                        </option>
+                            Ajouter un commentaire
+                        </label>
 
-                        <option
-                            value="En cours de traitement"
-                            {{ $incident->status === 'En cours de traitement' ? 'selected' : '' }}
-                        >
-                            En cours de traitement
-                        </option>
 
-                        <option
-                            value="Résolu"
-                            {{ $incident->status === 'Résolu' ? 'selected' : '' }}
-                        >
-                            Résolu
-                        </option>
+                        <textarea
+                            id="content"
+                            name="content"
+                            rows="3"
+                            maxlength="1000"
+                            required
+                            class="w-full border-gray-300 rounded-md shadow-sm text-sm"
+                            placeholder="Écrire un commentaire..."
+                        >{{ old('content') }}</textarea>
 
-                        <option
-                            value="Rejeté"
-                            {{ $incident->status === 'Rejeté' ? 'selected' : '' }}
-                        >
-                            Rejeté
-                        </option>
+                    </div>
 
-                    </select>
 
                     <button
                         type="submit"
-                        class="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-md"
                     >
-                        Mettre à jour
+                        Publier
                     </button>
 
                 </form>
 
-            @endcan
+            @endauth
 
         </div>
 
 
-        {{-- Priorité --}}
+        {{-- =========================
+             Affectation
+        ========================== --}}
 
-        <div class="bg-white rounded-lg shadow p-6">
+        @can('assign', $incident)
 
-            <p class="text-sm text-gray-500 mb-2">
-                Priorité
-            </p>
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
 
-            @php
-                $priorityClasses = match($incident->priority) {
+                <h2 class="text-xl font-bold text-gray-800 mb-5">
+                    Affectation du technicien
+                </h2>
 
-                    'Urgente'
-                        => 'bg-red-100 text-red-800',
 
-                    'Élevée'
-                        => 'bg-orange-100 text-orange-800',
+                <form
+                    action="{{ route('incidents.assign', $incident) }}"
+                    method="POST"
+                >
 
-                    'Moyenne'
-                        => 'bg-yellow-100 text-yellow-800',
+                    @csrf
 
-                    'Faible'
-                        => 'bg-blue-100 text-blue-800',
 
-                    default
-                        => 'bg-gray-100 text-gray-800',
-                };
-            @endphp
+                    {{-- Technicien --}}
 
-            <span
-                class="inline-flex px-3 py-1 text-sm font-semibold rounded-full {{ $priorityClasses }}"
-            >
-                {{ $incident->priority ?? 'Moyenne' }}
-            </span>
+                    <div class="mb-4">
 
-        </div>
+                        <label
+                            for="technicien_id"
+                            class="block text-sm font-medium text-gray-700 mb-2"
+                        >
+                            Choisir un technicien
+                        </label>
 
 
-        {{-- Catégorie --}}
-
-        <div class="bg-white rounded-lg shadow p-6">
-
-            <p class="text-sm text-gray-500 mb-2">
-                Catégorie
-            </p>
-
-            <p class="text-lg font-semibold text-green-600">
-                {{ $incident->category->name ?? 'Non spécifiée' }}
-            </p>
-
-            @if ($incident->category)
-
-                <p class="text-xs text-gray-500 mt-1">
-                    {{ $incident->category->type }}
-                </p>
-
-            @endif
-
-        </div>
-
-    </div>
-
-
-    {{-- =========================
-         Informations
-    ========================== --}}
-
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-
-        <h2 class="text-xl font-bold text-gray-800 mb-5">
-            Informations sur l'incident
-        </h2>
-
-
-        {{-- Description --}}
-
-        <div class="mb-6">
-
-            <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">
-                Description
-            </h3>
-
-            <p class="text-gray-700 leading-relaxed whitespace-pre-line">
-                {{ $incident->description }}
-            </p>
-
-        </div>
-
-
-        {{-- Signaleur --}}
-
-        <div class="mb-6">
-
-            <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">
-                Signalé par
-            </h3>
-
-            <p class="text-gray-700">
-                {{ $incident->user->name ?? 'Anonyme' }}
-            </p>
-
-            @if ($incident->user)
-
-                <p class="text-sm text-gray-500">
-                    {{ $incident->user->email }}
-                </p>
-
-            @endif
-
-        </div>
-
-
-        {{-- Localisation --}}
-
-        <div>
-
-            <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">
-                Localisation
-            </h3>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                <div class="bg-gray-50 border rounded-md p-4">
-
-                    <p class="text-xs text-gray-500">
-                        Latitude
-                    </p>
-
-                    <p class="font-semibold text-gray-800">
-                        {{ $incident->latitude ?? 'Non renseignée' }}
-                    </p>
-
-                </div>
-
-
-                <div class="bg-gray-50 border rounded-md p-4">
-
-                    <p class="text-xs text-gray-500">
-                        Longitude
-                    </p>
-
-                    <p class="font-semibold text-gray-800">
-                        {{ $incident->longitude ?? 'Non renseignée' }}
-                    </p>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-    {{-- =========================
-         Photos
-    ========================== --}}
-
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-
-        <div class="flex items-center justify-between mb-5">
-
-            <h2 class="text-xl font-bold text-gray-800">
-                Photos
-            </h2>
-
-            <span class="text-sm text-gray-500">
-                {{ $incident->images->count() }}
-                {{ $incident->images->count() > 1 ? 'photos' : 'photo' }}
-            </span>
-
-        </div>
-
-
-        @if ($incident->images->isNotEmpty())
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-
-                @foreach ($incident->images as $image)
-
-                    <div class="border rounded-lg overflow-hidden bg-gray-50">
-
-                        {{-- Image clickable --}}
-
-                        <button
-                            type="button"
-                            onclick="openImageModal('{{ asset('storage/' . $image->image_path) }}')"
-                            class="block w-full text-left"
+                        <select
+                            id="technicien_id"
+                            name="technicien_id"
+                            required
+                            class="w-full border-gray-300 rounded-md shadow-sm"
                         >
 
-                            <img
-                                src="{{ asset('storage/' . $image->image_path) }}"
-                                alt="Photo de {{ $incident->title }}"
-                                class="w-full h-56 object-cover hover:scale-105 transition duration-300 cursor-zoom-in"
-                            >
-
-                        </button>
+                            <option value="">
+                                Sélectionnez un technicien
+                            </option>
 
 
-                        {{-- Actions de l'image --}}
+                            @forelse ($techniciens as $technicien)
 
-                        @can('update', $incident)
+                                <option value="{{ $technicien->id }}">
+                                    {{ $technicien->name }} — {{ $technicien->email }}
+                                </option>
 
-                            <div class="p-3 bg-white border-t">
+                            @empty
 
-                                <form
-                                    action="{{ route('incidents.images.destroy', [$incident, $image]) }}"
-                                    method="POST"
-                                    onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette photo ?');"
-                                >
+                                <option value="">
+                                    Aucun technicien disponible
+                                </option>
 
-                                    @csrf
-                                    @method('DELETE')
+                            @endforelse
 
-                                   <button
-    type="submit"
-    title="Supprimer cette photo"
-    aria-label="Supprimer cette photo"
-    class="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-lg font-semibold rounded-md"
->
-    🗑️
-                          </button>
-
-                                </form>
-
-                            </div>
-
-                        @endcan
+                        </select>
 
                     </div>
 
-                @endforeach
+
+                    {{-- Instructions --}}
+
+                    <div class="mb-4">
+
+                        <label
+                            for="instructions"
+                            class="block text-sm font-medium text-gray-700 mb-2"
+                        >
+                            Instructions
+                        </label>
+
+
+                        <textarea
+                            id="instructions"
+                            name="instructions"
+                            rows="4"
+                            maxlength="1000"
+                            class="w-full border-gray-300 rounded-md shadow-sm"
+                            placeholder="Instructions pour le technicien..."
+                        >{{ old('instructions') }}</textarea>
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md"
+                    >
+                        Affecter le technicien
+                    </button>
+
+                </form>
 
             </div>
 
-        @else
+        @endcan
 
-            <p class="text-gray-500">
-                Aucune photo disponible pour cet incident.
-            </p>
+
+        {{-- =========================
+             Affectations existantes
+        ========================== --}}
+
+        @if ($incident->affectations->isNotEmpty())
+
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+
+                <h2 class="text-xl font-bold text-gray-800 mb-5">
+                    Historique des affectations
+                </h2>
+
+
+                <div class="space-y-4">
+
+                    @foreach ($incident->affectations as $affectation)
+
+                        <div class="border rounded-lg p-4 bg-gray-50">
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+
+                                {{-- Technicien --}}
+
+                                <div>
+
+                                    <p class="text-xs text-gray-500">
+                                        Technicien
+                                    </p>
+
+                                    <p class="font-semibold text-gray-800">
+                                        {{ $affectation->technicien->name ?? 'Non affecté' }}
+                                    </p>
+
+                                </div>
+
+
+                                {{-- Date --}}
+
+                                <div>
+
+                                    <p class="text-xs text-gray-500">
+                                        Date d'affectation
+                                    </p>
+
+                                    <p class="font-semibold text-gray-800">
+
+                                        {{
+                                            $affectation->date_affectation?->format('d/m/Y H:i')
+                                            ?? 'Non renseignée'
+                                        }}
+
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+
+                            @if ($affectation->instructions)
+
+                                <div class="mt-4">
+
+                                    <p class="text-xs text-gray-500">
+                                        Instructions
+                                    </p>
+
+                                    <p class="text-gray-700 mt-1 whitespace-pre-line">
+                                        {{ $affectation->instructions }}
+                                    </p>
+
+                                </div>
+
+                            @endif
+
+                        </div>
+
+                    @endforeach
+
+                </div>
+
+            </div>
 
         @endif
 
@@ -476,414 +976,161 @@
 
 
     {{-- =========================
-         Modal Image
+         JavaScript
     ========================== --}}
 
-    <div
-        id="imageModal"
-        class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-        onclick="closeImageModal()"
-    >
+    <script>
 
-        <div
-            class="relative max-w-6xl max-h-[90vh]"
-            onclick="event.stopPropagation()"
-        >
+        /*
+        |--------------------------------------------------------------------------
+        | Modal Image
+        |--------------------------------------------------------------------------
+        */
 
-            {{-- Close button --}}
+        function openImageModal(imageUrl) {
 
-            <button
-                type="button"
-                onclick="closeImageModal()"
-                class="absolute -top-12 right-0 text-white text-3xl font-bold hover:text-gray-300"
-                aria-label="Fermer"
-            >
-                ✕
-            </button>
+            const modal = document.getElementById('imageModal');
 
+            const modalImage = document.getElementById('modalImage');
 
-            {{-- Grande image --}}
+            modalImage.src = imageUrl;
 
-            <img
-                id="modalImage"
-                src=""
-                alt="Photo agrandie"
-                class="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain"
-            >
+            modal.classList.remove('hidden');
 
-        </div>
-
-    </div>
-
-
-    {{-- =========================
-         GeoEco Assistant
-    ========================== --}}
-
-    @if ($incident->ai_summary || $incident->ai_suggested_category)
-
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-
-            <h2 class="text-xl font-bold text-gray-800 mb-5">
-                GeoEco Assistant
-            </h2>
-
-
-            @if ($incident->ai_summary)
-
-                <div class="mb-4">
-
-                    <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">
-                        Résumé IA
-                    </h3>
-
-                    <p class="text-gray-700 leading-relaxed">
-                        {{ $incident->ai_summary }}
-                    </p>
-
-                </div>
-
-            @endif
-
-
-            @if ($incident->ai_suggested_category)
-
-                <div>
-
-                    <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">
-                        Catégorie suggérée par l'IA
-                    </h3>
-
-                    <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-purple-100 text-purple-800">
-                        {{ $incident->ai_suggested_category }}
-                    </span>
-
-                </div>
-
-            @endif
-
-        </div>
-
-    @endif
-
-
-    {{-- =========================
-         Commentaires
-    ========================== --}}
-
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-
-        <h2 class="text-xl font-bold text-gray-800 mb-5">
-            Commentaires
-        </h2>
-
-
-        {{-- Liste --}}
-
-        <div class="space-y-4 mb-6">
-
-            @forelse ($incident->comments as $comment)
-
-                <div class="p-4 bg-gray-50 rounded-md border">
-
-                    <div class="flex justify-between items-center mb-1">
-
-                        <span class="font-semibold text-gray-800">
-                            {{ $comment->user->name ?? 'Utilisateur' }}
-                        </span>
-
-                        <span class="text-xs text-gray-500">
-                            {{ $comment->created_at->format('d/m/Y H:i') }}
-                        </span>
-
-                    </div>
-
-                    <p class="text-gray-700 text-sm whitespace-pre-line">
-                        {{ $comment->content }}
-                    </p>
-
-                </div>
-
-            @empty
-
-                <p class="text-gray-500 text-sm">
-                    Aucun commentaire pour le moment.
-                </p>
-
-            @endforelse
-
-        </div>
-
-
-        {{-- Formulaire --}}
-
-        @auth
-
-            <form
-                action="{{ route('comments.store', $incident) }}"
-                method="POST"
-            >
-
-                @csrf
-
-                <div class="mb-3">
-
-                    <label
-                        for="content"
-                        class="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                        Ajouter un commentaire
-                    </label>
-
-                    <textarea
-                        id="content"
-                        name="content"
-                        rows="3"
-                        maxlength="1000"
-                        required
-                        class="w-full border-gray-300 rounded-md shadow-sm text-sm"
-                        placeholder="Écrire un commentaire..."
-                    >{{ old('content') }}</textarea>
-
-                </div>
-
-
-                <button
-                    type="submit"
-                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-md"
-                >
-                    Publier
-                </button>
-
-            </form>
-
-        @endauth
-
-    </div>
-
-
-    {{-- =========================
-         Affectation
-    ========================== --}}
-
-    @can('assign', $incident)
-
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-
-            <h2 class="text-xl font-bold text-gray-800 mb-5">
-                Affectation du technicien
-            </h2>
-
-            <form
-                action="{{ route('incidents.assign', $incident) }}"
-                method="POST"
-            >
-
-                @csrf
-
-                {{-- Technicien --}}
-
-                <div class="mb-4">
-
-                    <label
-                        for="technicien_id"
-                        class="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                        Choisir un technicien
-                    </label>
-
-                    <select
-                        id="technicien_id"
-                        name="technicien_id"
-                        required
-                        class="w-full border-gray-300 rounded-md shadow-sm"
-                    >
-
-                        <option value="">
-                            Sélectionnez un technicien
-                        </option>
-
-                        @forelse ($techniciens as $technicien)
-
-                            <option value="{{ $technicien->id }}">
-                                {{ $technicien->name }} — {{ $technicien->email }}
-                            </option>
-
-                        @empty
-
-                            <option value="">
-                                Aucun technicien disponible
-                            </option>
-
-                        @endforelse
-
-                    </select>
-
-                </div>
-
-
-                {{-- Instructions --}}
-
-                <div class="mb-4">
-
-                    <label
-                        for="instructions"
-                        class="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                        Instructions
-                    </label>
-
-                    <textarea
-                        id="instructions"
-                        name="instructions"
-                        rows="4"
-                        maxlength="1000"
-                        class="w-full border-gray-300 rounded-md shadow-sm"
-                        placeholder="Instructions pour le technicien..."
-                    >{{ old('instructions') }}</textarea>
-
-                </div>
-
-
-                <button
-                    type="submit"
-                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md"
-                >
-                    Affecter le technicien
-                </button>
-
-            </form>
-
-        </div>
-
-    @endcan
-
-
-    {{-- =========================
-         Affectations existantes
-    ========================== --}}
-
-    @if ($incident->affectations->isNotEmpty())
-
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-
-            <h2 class="text-xl font-bold text-gray-800 mb-5">
-                Historique des affectations
-            </h2>
-
-            <div class="space-y-4">
-
-                @foreach ($incident->affectations as $affectation)
-
-                    <div class="border rounded-lg p-4 bg-gray-50">
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                            <div>
-
-                                <p class="text-xs text-gray-500">
-                                    Technicien
-                                </p>
-
-                                <p class="font-semibold text-gray-800">
-                                    {{ $affectation->technicien->name ?? 'Non affecté' }}
-                                </p>
-
-                            </div>
-
-
-                            <div>
-
-                                <p class="text-xs text-gray-500">
-                                    Date d'affectation
-                                </p>
-
-                                <p class="font-semibold text-gray-800">
-                                    {{
-                                        $affectation->date_affectation?->format('d/m/Y H:i')
-                                        ?? 'Non renseignée'
-                                    }}
-                                </p>
-
-                            </div>
-
-                        </div>
-
-
-                        @if ($affectation->instructions)
-
-                            <div class="mt-4">
-
-                                <p class="text-xs text-gray-500">
-                                    Instructions
-                                </p>
-
-                                <p class="text-gray-700 mt-1 whitespace-pre-line">
-                                    {{ $affectation->instructions }}
-                                </p>
-
-                            </div>
-
-                        @endif
-
-                    </div>
-
-                @endforeach
-
-            </div>
-
-        </div>
-
-    @endif
-
-</div>
-
-
-{{-- =========================
-     JavaScript
-========================== --}}
-
-<script>
-
-    function openImageModal(imageUrl) {
-
-        const modal = document.getElementById('imageModal');
-        const modalImage = document.getElementById('modalImage');
-
-        modalImage.src = imageUrl;
-
-        modal.classList.remove('hidden');
-
-        document.body.classList.add('overflow-hidden');
-    }
-
-
-    function closeImageModal() {
-
-        const modal = document.getElementById('imageModal');
-        const modalImage = document.getElementById('modalImage');
-
-        modal.classList.add('hidden');
-
-        modalImage.src = '';
-
-        document.body.classList.remove('overflow-hidden');
-    }
-
-
-    // Fermer avec la touche ESC
-
-    document.addEventListener('keydown', function(event) {
-
-        if (event.key === 'Escape') {
-
-            closeImageModal();
+            document.body.classList.add('overflow-hidden');
 
         }
 
-    });
 
-</script>
+        function closeImageModal() {
 
-</body>
-</html>
+            const modal = document.getElementById('imageModal');
+
+            const modalImage = document.getElementById('modalImage');
+
+            modal.classList.add('hidden');
+
+            modalImage.src = '';
+
+            document.body.classList.remove('overflow-hidden');
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Fermer modal avec Escape
+        |--------------------------------------------------------------------------
+        */
+
+        document.addEventListener('keydown', function(event) {
+
+            if (event.key === 'Escape') {
+
+                closeImageModal();
+
+            }
+
+        });
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Leaflet - Carte de l'incident
+        |--------------------------------------------------------------------------
+        */
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+            @if ($incident->latitude !== null && $incident->longitude !== null)
+
+                const latitude = {{ (float) $incident->latitude }};
+
+                const longitude = {{ (float) $incident->longitude }};
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Création de la carte
+                |--------------------------------------------------------------------------
+                */
+
+                const incidentMap = L.map('incident-map').setView(
+                    [latitude, longitude],
+                    15
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | OpenStreetMap
+                |--------------------------------------------------------------------------
+                */
+
+                L.tileLayer(
+                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    {
+                        attribution: '&copy; OpenStreetMap contributors'
+                    }
+                ).addTo(incidentMap);
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Marker
+                |--------------------------------------------------------------------------
+                */
+
+                const incidentMarker = L.marker([
+                    latitude,
+                    longitude
+                ]).addTo(incidentMap);
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Popup
+                |--------------------------------------------------------------------------
+                */
+
+                incidentMarker.bindPopup(`
+                    <div style="min-width: 180px;">
+
+                        <strong>
+                            {{ addslashes($incident->title) }}
+                        </strong>
+
+                        <br>
+
+                        <span>
+                            Statut :
+                            {{ addslashes($incident->status) }}
+                        </span>
+
+                        <br><br>
+
+                        <span>
+                            📍 {{ $incident->latitude }},
+                            {{ $incident->longitude }}
+                        </span>
+
+                    </div>
+                `);
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Ouvrir popup
+                |--------------------------------------------------------------------------
+                */
+
+                incidentMarker.openPopup();
+
+            @endif
+
+        });
+
+    </script>
+
+
+</x-app-layout>

@@ -7,7 +7,14 @@
 
     <title>GeoEcoReport</title>
 
+    {{-- Tailwind CSS --}}
     <script src="https://cdn.tailwindcss.com"></script>
+
+    {{-- Leaflet CSS --}}
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
 </head>
 
 <body class="bg-gray-100 min-h-screen">
@@ -324,7 +331,16 @@
 
 
     {{-- =========================
-         JavaScript
+         Leaflet JavaScript
+    ========================== --}}
+
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+
+
+    {{-- =========================
+         Notifications JavaScript
     ========================== --}}
 
     <script>
@@ -367,6 +383,7 @@
         });
 
     </script>
+
 
 </body>
 
