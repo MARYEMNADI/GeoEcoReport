@@ -22,6 +22,7 @@
         </div>
     </x-slot>
 
+
     {{-- Contenu --}}
     <div class="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
 
@@ -30,6 +31,7 @@
             {{-- Messages d'erreurs --}}
             @if ($errors->any())
                 <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+
                     <div class="flex items-center mb-2">
                         <span class="text-red-600 font-semibold">
                             Erreurs de validation
@@ -41,8 +43,10 @@
                             <li>{{ $error }}</li>
                         @endforeach
                     </ul>
+
                 </div>
             @endif
+
 
             {{-- Formulaire --}}
             <form
@@ -50,7 +54,9 @@
                 method="POST"
                 enctype="multipart/form-data"
             >
+
                 @csrf
+
 
                 {{-- ========================= --}}
                 {{-- Titre --}}
@@ -71,7 +77,7 @@
                         value="{{ old('title') }}"
                         required
                         maxlength="255"
-                        placeholder="Exemple : Nid-de-poule dangereux"
+                        placeholder="Exemple : Fuite d'eau dangereuse"
                         class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                     >
 
@@ -93,30 +99,40 @@
                         for="category_id"
                         class="block text-sm font-medium text-gray-700 mb-1"
                     >
-                        Catégorie *
+                        Catégorie
                     </label>
 
                     <select
                         id="category_id"
                         name="category_id"
-                        required
                         class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                     >
 
+                        {{-- IMPORTANT :
+                             Pas de required ici.
+                             L'AI peut choisir automatiquement.
+                        --}}
                         <option value="">
-                            -- Sélectionner une catégorie --
+                            -- Laisser l'assistant choisir --
                         </option>
 
                         @foreach ($categories as $category)
+
                             <option
                                 value="{{ $category->id }}"
                                 {{ old('category_id') == $category->id ? 'selected' : '' }}
                             >
                                 {{ $category->name }}
                             </option>
+
                         @endforeach
 
                     </select>
+
+                    <p class="mt-1 text-xs text-gray-500">
+                        Si vous ne choisissez pas de catégorie,
+                        l'assistant GeoEco la déterminera automatiquement.
+                    </p>
 
                     @error('category_id')
                         <p class="mt-1 text-sm text-red-600">
@@ -165,6 +181,7 @@
                     <div class="flex items-center justify-between mb-4">
 
                         <div>
+
                             <h3 class="font-semibold text-gray-800 text-lg">
                                 📍 Localisation
                             </h3>
@@ -172,6 +189,7 @@
                             <p class="text-sm text-gray-500 mt-1">
                                 Choisissez l'emplacement de l'incident sur la carte.
                             </p>
+
                         </div>
 
                     </div>
@@ -332,12 +350,24 @@
 
         document.addEventListener('DOMContentLoaded', function () {
 
+            // =========================
             // Inputs
-            const latitudeInput = document.getElementById('latitude');
-            const longitudeInput = document.getElementById('longitude');
-            const locationButton = document.getElementById('my-location');
+            // =========================
 
+            const latitudeInput =
+                document.getElementById('latitude');
+
+            const longitudeInput =
+                document.getElementById('longitude');
+
+            const locationButton =
+                document.getElementById('my-location');
+
+
+            // =========================
             // Valeurs actuelles
+            // =========================
+
             const defaultLat =
                 parseFloat(latitudeInput.value) || 32.53530000;
 
@@ -362,7 +392,8 @@
             L.tileLayer(
                 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                 {
-                    attribution: '&copy; OpenStreetMap contributors'
+                    attribution:
+                        '&copy; OpenStreetMap contributors'
                 }
             ).addTo(map);
 
@@ -390,12 +421,16 @@
 
             function updateCoordinates(lat, lng) {
 
-                latitudeInput.value = lat.toFixed(8);
+                latitudeInput.value =
+                    lat.toFixed(8);
 
-                longitudeInput.value = lng.toFixed(8);
+                longitudeInput.value =
+                    lng.toFixed(8);
 
-                marker.setLatLng([lat, lng]);
-
+                marker.setLatLng([
+                    lat,
+                    lng
+                ]);
             }
 
 
@@ -405,12 +440,16 @@
 
             map.on('click', function (event) {
 
-                const lat = event.latlng.lat;
+                const lat =
+                    event.latlng.lat;
 
-                const lng = event.latlng.lng;
+                const lng =
+                    event.latlng.lng;
 
-                updateCoordinates(lat, lng);
-
+                updateCoordinates(
+                    lat,
+                    lng
+                );
             });
 
 
@@ -420,13 +459,13 @@
 
             marker.on('dragend', function () {
 
-                const position = marker.getLatLng();
+                const position =
+                    marker.getLatLng();
 
                 updateCoordinates(
                     position.lat,
                     position.lng
                 );
-
             });
 
 
@@ -448,7 +487,7 @@
                     }
 
 
-                    // Petit feedback
+                    // Feedback
                     locationButton.disabled = true;
 
                     locationButton.innerHTML =
@@ -487,12 +526,11 @@
                                 .openPopup();
 
 
-                            // Réactiver bouton
+                            // Réactiver
                             locationButton.disabled = false;
 
                             locationButton.innerHTML =
                                 '📍 Ma position';
-
                         },
 
 
@@ -516,29 +554,26 @@
 
                                 message =
                                     'La récupération de votre position a expiré.';
-
                             }
 
 
                             alert(message);
 
 
-                            // Réactiver bouton
+                            // Réactiver
                             locationButton.disabled = false;
 
                             locationButton.innerHTML =
                                 '📍 Ma position';
-
                         },
+
 
                         {
                             enableHighAccuracy: true,
                             timeout: 10000,
                             maximumAge: 0
                         }
-
                     );
-
                 }
             );
 

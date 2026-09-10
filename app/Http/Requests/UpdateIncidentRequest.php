@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateIncidentRequest extends FormRequest
 {
@@ -39,8 +38,7 @@ class UpdateIncidentRequest extends FormRequest
             ],
 
             'category_id' => [
-                'required',
-                'integer',
+               'nullable',
                 'exists:categories,id',
             ],
 
@@ -50,6 +48,16 @@ class UpdateIncidentRequest extends FormRequest
                 'mimes:jpeg,png,jpg,webp',
                 'max:5120',
             ],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'image.image' => 'Le fichier doit être une image.',
+            'image.mimes' => 'L’image doit être au format JPG, JPEG, PNG ou WEBP.',
+            'image.max' => 'L’image ne doit pas dépasser 5 Mo.',
+            'image.uploaded' => 'Le téléchargement de l’image a échoué. Vérifiez sa taille et réessayez.',
         ];
     }
 }

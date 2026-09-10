@@ -22,4 +22,4 @@ tests
 
 docker-compose.yml
 Dockerfile
-docker-entrypoint.sh
+docker-entrypoint.sh"/public/storage" 

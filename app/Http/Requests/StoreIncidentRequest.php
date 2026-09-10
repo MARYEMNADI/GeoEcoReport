@@ -8,7 +8,7 @@ use Illuminate\Validation\Rule;
 class StoreIncidentRequest extends FormRequest
 {
     /**
-     * التحقق مما إذا كان المستخدم مسجل الدخول.
+     * Vérifier si l'utilisateur est authentifié.
      */
     public function authorize(): bool
     {
@@ -16,7 +16,7 @@ class StoreIncidentRequest extends FormRequest
     }
 
     /**
-     * قواعد التحقق الخاصة بإنشاء بلاغ جديد.
+     * Règles de validation.
      */
     public function rules(): array
     {
@@ -44,8 +44,14 @@ class StoreIncidentRequest extends FormRequest
                 'between:-180,180',
             ],
 
+            /*
+             * La catégorie est maintenant OPTIONNELLE.
+             *
+             * Si l'utilisateur ne la choisit pas,
+             * GeoEco Assistant va la déterminer automatiquement.
+             */
             'category_id' => [
-                'required',
+                'nullable',
                 'integer',
                 'exists:categories,id',
             ],
@@ -60,44 +66,68 @@ class StoreIncidentRequest extends FormRequest
                 ]),
             ],
 
-            // إضافة قاعدة التحقق من ملف الصورة
             'image' => [
                 'nullable',
                 'image',
-                'mimes:jpeg,png,jpg,gif',
-                'max:2048', // الحد الأقصى 2 ميجابايت
+                'mimes:jpeg,jpg,png,webp',
+                'max:5120',
             ],
         ];
     }
 
     /**
-     * رسائل الخطأ المخصصة.
+     * Messages personnalisés.
      */
     public function messages(): array
     {
         return [
-            'title.required' => 'Le titre du signalement est obligatoire.',
-            'title.max' => 'Le titre ne doit pas dépasser 255 caractères.',
+            'title.required' =>
+                'Le titre du signalement est obligatoire.',
 
-            'description.required' => 'La description est obligatoire.',
+            'title.max' =>
+                'Le titre ne doit pas dépasser 255 caractères.',
 
-            'latitude.required' => 'La latitude est requise.',
-            'latitude.numeric' => 'La latitude doit être numérique.',
-            'latitude.between' => 'La latitude doit être comprise entre -90 et 90.',
+            'description.required' =>
+                'La description est obligatoire.',
 
-            'longitude.required' => 'La longitude est requise.',
-            'longitude.numeric' => 'La longitude doit être numérique.',
-            'longitude.between' => 'La longitude doit être comprise entre -180 et 180.',
+            'latitude.required' =>
+                'La latitude est requise.',
 
-            'category_id.required' => 'Veuillez choisir une catégorie.',
-            'category_id.exists' => 'La catégorie sélectionnée n\'existe pas.',
+            'latitude.numeric' =>
+                'La latitude doit être numérique.',
 
-            'priority.in' => 'La priorité sélectionnée est invalide.',
+            'latitude.between' =>
+                'La latitude doit être comprise entre -90 et 90.',
 
-            // إضافة رسائل الخطأ الخاصة بالصورة
-            'image.image' => 'Le fichier doit être une image.',
-            'image.mimes' => 'L’image doit être au format JPEG, PNG, JPG ou GIF.',
-            'image.max' => 'L’image ne doit pas dépasser 2 Mo.',
+            'longitude.required' =>
+                'La longitude est requise.',
+
+            'longitude.numeric' =>
+                'La longitude doit être numérique.',
+
+            'longitude.between' =>
+                'La longitude doit être comprise entre -180 et 180.',
+
+            'category_id.integer' =>
+                'La catégorie sélectionnée est invalide.',
+
+            'category_id.exists' =>
+                'La catégorie sélectionnée n\'existe pas.',
+
+            'priority.in' =>
+                'La priorité sélectionnée est invalide.',
+
+            'image.image' =>
+                'Le fichier doit être une image.',
+
+            'image.mimes' =>
+                'L’image doit être au format JPG, JPEG, PNG ou WEBP.',
+
+            'image.max' =>
+                'L’image ne doit pas dépasser 5 Mo.',
+
+            'image.uploaded' =>
+                'Le téléchargement de l’image a échoué. Vérifiez sa taille et réessayez.',
         ];
     }
 }

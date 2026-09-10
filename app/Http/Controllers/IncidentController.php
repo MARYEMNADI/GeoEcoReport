@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\Incident;
 use App\Models\IncidentImage;
 use App\Models\User;
+use App\Services\GeoEcoAssistantService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
@@ -16,6 +17,14 @@ use Illuminate\View\View;
 class IncidentController extends Controller
 {
     use AuthorizesRequests;
+
+    /**
+     * GeoEco Assistant Service.
+     */
+    public function __construct(
+        private GeoEcoAssistantService $assistant
+    ) {
+    }
 
     /**
      * Afficher tous les incidents.
@@ -32,10 +41,7 @@ class IncidentController extends Controller
             ->latest()
             ->paginate(10);
 
-        return view(
-            'incidents.index',
-            compact('incidents')
-        );
+        return view('incidents.index', compact('incidents'));
     }
 
     /**
@@ -47,59 +53,224 @@ class IncidentController extends Controller
 
         $categories = Category::orderBy('name')->get();
 
-        return view(
-            'incidents.create',
-            compact('categories')
-        );
+        return view('incidents.create', compact('categories'));
     }
 
     /**
      * Enregistrer un nouvel incident.
+     *
+     * L'utilisateur peut laisser la catégorie vide.
+     * Dans ce cas GeoEco Assistant propose automatiquement
+     * une catégorie.
      */
-    public function store(
-        StoreIncidentRequest $request
-    ): RedirectResponse {
-
+    public function store(StoreIncidentRequest $request): RedirectResponse
+    {
         $this->authorize('create', Incident::class);
 
-        $data = $request->validated();
+        try {
+            /*
+             * ==================================================
+             * 1. DONNÉES VALIDÉES
+             * ==================================================
+             */
+            $data = $request->validated();
 
-        $data['user_id'] = auth()->id();
-        $data['status'] = 'En attente';
-        $data['priority'] = 'Moyenne';
+            /*
+             * L'image sera traitée séparément.
+             */
+            unset($data['image']);
 
-        $incident = Incident::create($data);
+            /*
+             * ==================================================
+             * 2. DONNÉES SYSTÈME
+             * ==================================================
+             */
+            $data['user_id'] = auth()->id();
+            $data['status'] = 'En attente';
 
-        /*
-         * Upload de l'image.
-         */
-        if ($request->hasFile('image')) {
+            /*
+             * Priorité temporaire.
+             * GeoEco Assistant va ensuite la déterminer.
+             */
+            $data['priority'] = 'Moyenne';
 
-            $path = $request->file('image')
-                ->store('incidents', 'public');
+            /*
+             * ==================================================
+             * 3. CRÉER UN INCIDENT TEMPORAIRE
+             * ==================================================
+             *
+             * On le sauvegarde d'abord afin que le service
+             * d'analyse puisse travailler sur un vrai modèle.
+             */
+            $temporaryIncident = new Incident();
 
-            $incident->images()->create([
-                'image_path' => $path,
-            ]);
-        }
+            $temporaryIncident->fill($data);
 
-        return redirect()
-            ->route('incidents.show', $incident)
-            ->with(
-                'success',
-                'Incident signalé avec succès.'
+            $temporaryIncident->save();
+
+            /*
+             * ==================================================
+             * 4. ANALYSE GEOECO ASSISTANT
+             * ==================================================
+             */
+            $analysis = $this->assistant->analyze(
+                $temporaryIncident
             );
+
+            /*
+             * ==================================================
+             * 5. RÉCUPÉRER LES RÉSULTATS
+             * ==================================================
+             *
+             * On accepte les deux formats possibles :
+             *
+             * suggested_category
+             * ou
+             * category
+             *
+             * Même logique pour la priorité.
+             */
+            $suggestedCategoryName =
+                $analysis['suggested_category']
+                ?? $analysis['category']
+                ?? null;
+
+            $suggestedPriority =
+                $analysis['suggested_priority']
+                ?? $analysis['priority']
+                ?? 'Moyenne';
+
+            $summary =
+                $analysis['summary']
+                ?? null;
+
+            /*
+             * ==================================================
+             * 6. DÉTERMINER LA CATÉGORIE
+             * ==================================================
+             */
+            $category = null;
+
+            /*
+             * ------------------------------------------
+             * CAS 1 :
+             * Catégorie choisie manuellement
+             * ------------------------------------------
+             */
+            if (!empty($data['category_id'])) {
+                $category = Category::find(
+                    $data['category_id']
+                );
+            }
+
+            /*
+             * ------------------------------------------
+             * CAS 2 :
+             * Catégorie proposée par l'assistant
+             * ------------------------------------------
+             */
+            if (!$category && $suggestedCategoryName) {
+                $category = Category::where(
+                    'name',
+                    $suggestedCategoryName
+                )->first();
+            }
+
+            /*
+             * ==================================================
+             * 7. SI AUCUNE CATÉGORIE N'EST TROUVÉE
+             * ==================================================
+             */
+            if (!$category) {
+                /*
+                 * Supprimer l'incident temporaire.
+                 */
+                $temporaryIncident->delete();
+
+                return back()
+                    ->withInput()
+                    ->withErrors([
+                        'category_id' =>
+                            "GeoEco Assistant n'a pas pu déterminer automatiquement la catégorie. Veuillez sélectionner une catégorie manuellement.",
+                    ]);
+            }
+
+            /*
+             * ==================================================
+             * 8. ENREGISTRER LES RÉSULTATS DE L'ASSISTANT
+             * ==================================================
+             */
+            $temporaryIncident->category_id =
+                $category->id;
+
+            $temporaryIncident->ai_summary =
+                $summary;
+
+            $temporaryIncident->ai_suggested_category =
+                $suggestedCategoryName;
+
+            $temporaryIncident->priority =
+                $suggestedPriority;
+
+            $temporaryIncident->save();
+
+            /*
+             * ==================================================
+             * 9. UPLOAD IMAGE
+             * ==================================================
+             */
+            if ($request->hasFile('image')) {
+                $path = $request
+                    ->file('image')
+                    ->store('incidents', 'public');
+
+                $temporaryIncident->images()->create([
+                    'image_path' => $path,
+                ]);
+            }
+
+            /*
+             * ==================================================
+             * 10. REDIRECTION
+             * ==================================================
+             */
+            return redirect()
+                ->route(
+                    'incidents.show',
+                    $temporaryIncident
+                )
+                ->with(
+                    'success',
+                    "Incident signalé avec succès. GeoEco Assistant a analysé l'incident."
+                );
+
+        } catch (\Throwable $e) {
+
+            /*
+             * Enregistrer l'erreur dans les logs Laravel.
+             */
+            report($e);
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    "Une erreur est survenue lors de la création de l'incident : "
+                    . $e->getMessage()
+                );
+        }
     }
 
     /**
      * Afficher un incident.
      */
-    public function show(
-        Incident $incident
-    ): View {
-
+    public function show(Incident $incident): View
+    {
         $this->authorize('view', $incident);
 
+        /*
+         * Charger toutes les relations nécessaires.
+         */
         $incident->load([
             'category',
             'user',
@@ -108,12 +279,14 @@ class IncidentController extends Controller
             'affectations.technicien',
         ]);
 
+        /*
+         * Récupérer les techniciens.
+         */
         $techniciens = User::whereHas(
             'roles',
-            fn ($query) => $query->where(
-                'name',
-                'technicien'
-            )
+            function ($query) {
+                $query->where('name', 'technicien');
+            }
         )
             ->orderBy('name')
             ->get();
@@ -130,17 +303,18 @@ class IncidentController extends Controller
     /**
      * Page de modification.
      */
-    public function edit(
-        Incident $incident
-    ): View {
+    public function edit(Incident $incident): View
+    {
+        $this->authorize('update', $incident);
 
-        $this->authorize(
-            'update',
-            $incident
-        );
-
+        /*
+         * Récupérer les catégories.
+         */
         $categories = Category::orderBy('name')->get();
 
+        /*
+         * Charger les images.
+         */
         $incident->load('images');
 
         return view(
@@ -154,43 +328,192 @@ class IncidentController extends Controller
 
     /**
      * Modifier un incident.
+     *
+     * Après modification, GeoEco Assistant réanalyse
+     * automatiquement la description.
      */
     public function update(
         UpdateIncidentRequest $request,
         Incident $incident
     ): RedirectResponse {
 
-        $this->authorize(
-            'update',
-            $incident
-        );
+        $this->authorize('update', $incident);
 
-        $data = $request->validated();
+        try {
 
-        $incident->update($data);
+            /*
+             * ==================================================
+             * 1. DONNÉES VALIDÉES
+             * ==================================================
+             */
+            $data = $request->validated();
 
-        /*
-         * Ajouter une nouvelle image.
-         */
-        if ($request->hasFile('image')) {
+            /*
+             * Image traitée séparément.
+             */
+            unset($data['image']);
 
-            $path = $request->file('image')
-                ->store('incidents', 'public');
+            /*
+             * ==================================================
+             * 2. CATÉGORIE MANUELLE
+             * ==================================================
+             *
+             * On mémorise la catégorie avant l'analyse.
+             */
+            $manualCategoryId =
+                $data['category_id']
+                ?? null;
 
-            $incident->images()->create([
-                'image_path' => $path,
-            ]);
-        }
+            /*
+             * ==================================================
+             * 3. METTRE À JOUR LES DONNÉES
+             * ==================================================
+             */
+            $incident->update($data);
 
-        return redirect()
-            ->route(
-                'incidents.show',
+            /*
+             * Recharger le modèle.
+             */
+            $incident->refresh();
+
+            /*
+             * ==================================================
+             * 4. ANALYSE GEOECO ASSISTANT
+             * ==================================================
+             */
+            $analysis = $this->assistant->analyze(
                 $incident
-            )
-            ->with(
-                'success',
-                'Incident modifié avec succès.'
             );
+
+            /*
+             * ==================================================
+             * 5. RÉSULTATS DE L'ASSISTANT
+             * ==================================================
+             */
+            $suggestedCategoryName =
+                $analysis['suggested_category']
+                ?? $analysis['category']
+                ?? null;
+
+            $suggestedPriority =
+                $analysis['suggested_priority']
+                ?? $analysis['priority']
+                ?? 'Moyenne';
+
+            $summary =
+                $analysis['summary']
+                ?? null;
+
+            /*
+             * ==================================================
+             * 6. DÉTERMINER LA CATÉGORIE
+             * ==================================================
+             */
+            $category = null;
+
+            /*
+             * ------------------------------------------
+             * Catégorie manuelle
+             * ------------------------------------------
+             */
+            if (!empty($manualCategoryId)) {
+                $category = Category::find(
+                    $manualCategoryId
+                );
+            }
+
+            /*
+             * ------------------------------------------
+             * Catégorie automatique
+             * ------------------------------------------
+             */
+            if (!$category && $suggestedCategoryName) {
+                $category = Category::where(
+                    'name',
+                    $suggestedCategoryName
+                )->first();
+            }
+
+            /*
+             * ==================================================
+             * 7. PRÉPARER LES DONNÉES GEOECO
+             * ==================================================
+             */
+            $updateData = [
+                'ai_summary' =>
+                    $summary,
+
+                'ai_suggested_category' =>
+                    $suggestedCategoryName,
+
+                'priority' =>
+                    $suggestedPriority,
+            ];
+
+            /*
+             * Si une catégorie a été trouvée,
+             * on l'enregistre.
+             */
+            if ($category) {
+                $updateData['category_id'] =
+                    $category->id;
+            }
+
+            /*
+             * ==================================================
+             * 8. SAUVEGARDER
+             * ==================================================
+             */
+            $incident->update(
+                $updateData
+            );
+
+            /*
+             * ==================================================
+             * 9. AJOUTER UNE IMAGE
+             * ==================================================
+             */
+            if ($request->hasFile('image')) {
+
+                $path = $request
+                    ->file('image')
+                    ->store('incidents', 'public');
+
+                $incident->images()->create([
+                    'image_path' => $path,
+                ]);
+            }
+
+            /*
+             * ==================================================
+             * 10. REDIRECTION
+             * ==================================================
+             */
+            return redirect()
+                ->route(
+                    'incidents.show',
+                    $incident
+                )
+                ->with(
+                    'success',
+                    "Incident modifié et réanalysé par GeoEco Assistant."
+                );
+
+        } catch (\Throwable $e) {
+
+            /*
+             * Log de l'erreur.
+             */
+            report($e);
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    "Une erreur est survenue lors de la modification de l'incident : "
+                    . $e->getMessage()
+                );
+        }
     }
 
     /**
@@ -203,7 +526,7 @@ class IncidentController extends Controller
 
         /*
          * Vérifier que l'image appartient
-         * bien à cet incident.
+         * réellement à cet incident.
          */
         if ($image->incident_id !== $incident->id) {
             abort(404);
@@ -232,8 +555,7 @@ class IncidentController extends Controller
         }
 
         /*
-         * Supprimer l'enregistrement
-         * de la base de données.
+         * Supprimer l'enregistrement DB.
          */
         $image->delete();
 
@@ -261,8 +583,9 @@ class IncidentController extends Controller
         );
 
         /*
-         * Supprimer toutes les images
-         * liées à l'incident.
+         * ==================================================
+         * 1. SUPPRIMER LES FICHIERS IMAGES
+         * ==================================================
          */
         foreach ($incident->images as $image) {
 
@@ -279,10 +602,17 @@ class IncidentController extends Controller
         }
 
         /*
-         * Supprimer l'incident.
+         * ==================================================
+         * 2. SUPPRIMER L'INCIDENT
+         * ==================================================
          */
         $incident->delete();
 
+        /*
+         * ==================================================
+         * 3. REDIRECTION
+         * ==================================================
+         */
         return redirect()
             ->route('incidents.index')
             ->with(

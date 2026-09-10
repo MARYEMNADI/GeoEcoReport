@@ -635,56 +635,118 @@
 
         </div>
 
-
         {{-- =========================
-             GeoEco Assistant
-        ========================== --}}
+     GeoEco Assistant
+========================== --}}
 
-        @if ($incident->ai_summary || $incident->ai_suggested_category)
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
 
-            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div class="flex items-center justify-between mb-5">
 
-                <h2 class="text-xl font-bold text-gray-800 mb-5">
-                    GeoEco Assistant
-                </h2>
+        <h2 class="text-xl font-bold text-gray-800">
+            GeoEco Assistant
+        </h2>
 
+        <span class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+            IA
+        </span>
 
-                @if ($incident->ai_summary)
-
-                    <div class="mb-4">
-
-                        <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">
-                            Résumé IA
-                        </h3>
-
-                        <p class="text-gray-700 leading-relaxed">
-                            {{ $incident->ai_summary }}
-                        </p>
-
-                    </div>
-
-                @endif
+    </div>
 
 
-                @if ($incident->ai_suggested_category)
+    {{-- =========================
+         Résumé IA
+    ========================== --}}
 
-                    <div>
+    <div class="mb-5">
 
-                        <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">
-                            Catégorie suggérée par l'IA
-                        </h3>
+        <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">
+            Résumé IA
+        </h3>
 
-                        <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-purple-100 text-purple-800">
-                            {{ $incident->ai_suggested_category }}
-                        </span>
+        @if (!empty($incident->ai_summary))
 
-                    </div>
+            <div class="bg-gray-50 border border-gray-200 rounded-md p-4">
 
-                @endif
+                <p class="text-gray-700 leading-relaxed whitespace-pre-line">
+                    {{ $incident->ai_summary }}
+                </p>
+
+            </div>
+
+        @else
+
+            <p class="text-gray-500 text-sm">
+                Aucun résumé IA disponible.
+            </p>
+
+        @endif
+
+    </div>
+
+
+    {{-- =========================
+         Catégorie suggérée par IA
+    ========================== --}}
+
+    <div class="mb-5">
+
+        <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">
+            Catégorie suggérée par l'IA
+        </h3>
+
+        @if (!empty($incident->ai_suggested_category))
+
+            <span class="inline-flex items-center px-3 py-2 text-sm font-semibold rounded-full bg-purple-100 text-purple-800">
+
+                {{ $incident->ai_suggested_category }}
+
+            </span>
+
+        @else
+
+            <div class="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+
+                <p class="text-sm text-yellow-700">
+                    L'assistant n'a pas encore déterminé de catégorie.
+                </p>
 
             </div>
 
         @endif
+
+    </div>
+
+
+    {{-- =========================
+         Catégorie finale
+    ========================== --}}
+
+    <div>
+
+        <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">
+            Catégorie attribuée
+        </h3>
+
+        @if ($incident->category)
+
+            <span class="inline-flex items-center px-3 py-2 text-sm font-semibold rounded-full bg-green-100 text-green-800">
+
+                {{ $incident->category->name }}
+
+            </span>
+
+        @else
+
+            <span class="text-gray-500 text-sm">
+                Aucune catégorie attribuée.
+            </span>
+
+        @endif
+
+    </div>
+
+</div>
 
 
         {{-- =========================
