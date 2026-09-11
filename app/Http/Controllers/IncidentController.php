@@ -41,7 +41,10 @@ class IncidentController extends Controller
             ->latest()
             ->paginate(10);
 
-        return view('incidents.index', compact('incidents'));
+        return view(
+            'incidents.index',
+            compact('incidents')
+        );
     }
 
     /**
@@ -53,18 +56,22 @@ class IncidentController extends Controller
 
         $categories = Category::orderBy('name')->get();
 
-        return view('incidents.create', compact('categories'));
+        return view(
+            'incidents.create',
+            compact('categories')
+        );
     }
 
     /**
      * Enregistrer un nouvel incident.
      *
      * L'utilisateur peut laisser la catégorie vide.
-     * Dans ce cas GeoEco Assistant propose automatiquement
-     * une catégorie.
+     * GeoEco Assistant propose alors automatiquement
+     * une catégorie et une priorité.
      */
-    public function store(StoreIncidentRequest $request): RedirectResponse
-    {
+    public function store(
+        StoreIncidentRequest $request
+    ): RedirectResponse {
         $this->authorize('create', Incident::class);
 
         try {
@@ -76,7 +83,7 @@ class IncidentController extends Controller
             $data = $request->validated();
 
             /*
-             * L'image sera traitée séparément.
+             * L'image est traitée séparément.
              */
             unset($data['image']);
 
@@ -89,24 +96,24 @@ class IncidentController extends Controller
             $data['status'] = 'En attente';
 
             /*
-             * Priorité temporaire.
-             * GeoEco Assistant va ensuite la déterminer.
+             * Priorité temporaire pour l'analyse.
              */
             $data['priority'] = 'Moyenne';
 
             /*
              * ==================================================
-             * 3. CRÉER UN INCIDENT TEMPORAIRE
+             * 3. INCIDENT EN MÉMOIRE UNIQUEMENT
              * ==================================================
              *
-             * On le sauvegarde d'abord afin que le service
-             * d'analyse puisse travailler sur un vrai modèle.
+             * IMPORTANT :
+             * On ne fait PAS save() ici.
+             *
+             * category_id peut être null dans le formulaire,
+             * alors que la colonne DB est NOT NULL.
              */
             $temporaryIncident = new Incident();
 
             $temporaryIncident->fill($data);
-
-            $temporaryIncident->save();
 
             /*
              * ==================================================
@@ -119,17 +126,10 @@ class IncidentController extends Controller
 
             /*
              * ==================================================
-             * 5. RÉCUPÉRER LES RÉSULTATS
+             * 5. RÉSULTATS DE L'ANALYSE
              * ==================================================
-             *
-             * On accepte les deux formats possibles :
-             *
-             * suggested_category
-             * ou
-             * category
-             *
-             * Même logique pour la priorité.
              */
+
             $suggestedCategoryName =
                 $analysis['suggested_category']
                 ?? $analysis['category']
@@ -144,6 +144,31 @@ class IncidentController extends Controller
                 $analysis['summary']
                 ?? null;
 
+            $suggestedAction =
+                $analysis['suggested_action']
+                ?? $analysis['ai_suggested_action']
+                ?? null;
+
+            $categoryConfidence =
+                $analysis['category_confidence']
+                ?? $analysis['ai_category_confidence']
+                ?? null;
+
+            $priorityConfidence =
+                $analysis['priority_confidence']
+                ?? $analysis['ai_priority_confidence']
+                ?? null;
+
+            $priorityReason =
+                $analysis['priority_reason']
+                ?? $analysis['ai_priority_reason']
+                ?? null;
+
+            $aiSource =
+                $analysis['source']
+                ?? $analysis['ai_source']
+                ?? 'rule_based';
+
             /*
              * ==================================================
              * 6. DÉTERMINER LA CATÉGORIE
@@ -153,7 +178,6 @@ class IncidentController extends Controller
 
             /*
              * ------------------------------------------
-             * CAS 1 :
              * Catégorie choisie manuellement
              * ------------------------------------------
              */
@@ -165,8 +189,7 @@ class IncidentController extends Controller
 
             /*
              * ------------------------------------------
-             * CAS 2 :
-             * Catégorie proposée par l'assistant
+             * Catégorie proposée automatiquement
              * ------------------------------------------
              */
             if (!$category && $suggestedCategoryName) {
@@ -178,15 +201,10 @@ class IncidentController extends Controller
 
             /*
              * ==================================================
-             * 7. SI AUCUNE CATÉGORIE N'EST TROUVÉE
+             * 7. AUCUNE CATÉGORIE TROUVÉE
              * ==================================================
              */
             if (!$category) {
-                /*
-                 * Supprimer l'incident temporaire.
-                 */
-                $temporaryIncident->delete();
-
                 return back()
                     ->withInput()
                     ->withErrors([
@@ -197,47 +215,72 @@ class IncidentController extends Controller
 
             /*
              * ==================================================
-             * 8. ENREGISTRER LES RÉSULTATS DE L'ASSISTANT
+             * 8. PRÉPARER LES DONNÉES FINALES
              * ==================================================
              */
-            $temporaryIncident->category_id =
-                $category->id;
+            $data['category_id'] = $category->id;
 
-            $temporaryIncident->ai_summary =
-                $summary;
+            $data['priority'] = $suggestedPriority;
 
-            $temporaryIncident->ai_suggested_category =
+            /*
+             * Informations GeoEco Assistant.
+             */
+            $data['ai_summary'] = $summary;
+
+            $data['ai_suggested_category'] =
                 $suggestedCategoryName;
 
-            $temporaryIncident->priority =
-                $suggestedPriority;
+            $data['ai_category_confidence'] =
+                $categoryConfidence;
 
-            $temporaryIncident->save();
+            $data['ai_priority_confidence'] =
+                $priorityConfidence;
+
+            $data['ai_priority_reason'] =
+                $priorityReason;
+
+            $data['ai_suggested_action'] =
+                $suggestedAction;
+
+            $data['ai_source'] =
+                $aiSource;
 
             /*
              * ==================================================
-             * 9. UPLOAD IMAGE
+             * 9. CRÉER L'INCIDENT DÉFINITIF
+             * ==================================================
+             *
+             * Maintenant category_id est obligatoirement défini.
+             */
+            $incident = Incident::create($data);
+
+            /*
+             * ==================================================
+             * 10. UPLOAD IMAGE
              * ==================================================
              */
             if ($request->hasFile('image')) {
                 $path = $request
                     ->file('image')
-                    ->store('incidents', 'public');
+                    ->store(
+                        'incidents',
+                        'public'
+                    );
 
-                $temporaryIncident->images()->create([
+                $incident->images()->create([
                     'image_path' => $path,
                 ]);
             }
 
             /*
              * ==================================================
-             * 10. REDIRECTION
+             * 11. REDIRECTION
              * ==================================================
              */
             return redirect()
                 ->route(
                     'incidents.show',
-                    $temporaryIncident
+                    $incident
                 )
                 ->with(
                     'success',
@@ -245,9 +288,8 @@ class IncidentController extends Controller
                 );
 
         } catch (\Throwable $e) {
-
             /*
-             * Enregistrer l'erreur dans les logs Laravel.
+             * Log de l'erreur.
              */
             report($e);
 
@@ -264,9 +306,13 @@ class IncidentController extends Controller
     /**
      * Afficher un incident.
      */
-    public function show(Incident $incident): View
-    {
-        $this->authorize('view', $incident);
+    public function show(
+        Incident $incident
+    ): View {
+        $this->authorize(
+            'view',
+            $incident
+        );
 
         /*
          * Charger toutes les relations nécessaires.
@@ -285,7 +331,10 @@ class IncidentController extends Controller
         $techniciens = User::whereHas(
             'roles',
             function ($query) {
-                $query->where('name', 'technicien');
+                $query->where(
+                    'name',
+                    'technicien'
+                );
             }
         )
             ->orderBy('name')
@@ -303,9 +352,13 @@ class IncidentController extends Controller
     /**
      * Page de modification.
      */
-    public function edit(Incident $incident): View
-    {
-        $this->authorize('update', $incident);
+    public function edit(
+        Incident $incident
+    ): View {
+        $this->authorize(
+            'update',
+            $incident
+        );
 
         /*
          * Récupérer les catégories.
@@ -329,18 +382,19 @@ class IncidentController extends Controller
     /**
      * Modifier un incident.
      *
-     * Après modification, GeoEco Assistant réanalyse
-     * automatiquement la description.
+     * Après modification, GeoEco Assistant
+     * réanalyse automatiquement l'incident.
      */
     public function update(
         UpdateIncidentRequest $request,
         Incident $incident
     ): RedirectResponse {
-
-        $this->authorize('update', $incident);
+        $this->authorize(
+            'update',
+            $incident
+        );
 
         try {
-
             /*
              * ==================================================
              * 1. DONNÉES VALIDÉES
@@ -357,8 +411,6 @@ class IncidentController extends Controller
              * ==================================================
              * 2. CATÉGORIE MANUELLE
              * ==================================================
-             *
-             * On mémorise la catégorie avant l'analyse.
              */
             $manualCategoryId =
                 $data['category_id']
@@ -387,9 +439,10 @@ class IncidentController extends Controller
 
             /*
              * ==================================================
-             * 5. RÉSULTATS DE L'ASSISTANT
+             * 5. RÉSULTATS DE L'ANALYSE
              * ==================================================
              */
+
             $suggestedCategoryName =
                 $analysis['suggested_category']
                 ?? $analysis['category']
@@ -404,6 +457,31 @@ class IncidentController extends Controller
                 $analysis['summary']
                 ?? null;
 
+            $suggestedAction =
+                $analysis['suggested_action']
+                ?? $analysis['ai_suggested_action']
+                ?? null;
+
+            $categoryConfidence =
+                $analysis['category_confidence']
+                ?? $analysis['ai_category_confidence']
+                ?? null;
+
+            $priorityConfidence =
+                $analysis['priority_confidence']
+                ?? $analysis['ai_priority_confidence']
+                ?? null;
+
+            $priorityReason =
+                $analysis['priority_reason']
+                ?? $analysis['ai_priority_reason']
+                ?? null;
+
+            $aiSource =
+                $analysis['source']
+                ?? $analysis['ai_source']
+                ?? 'rule_based';
+
             /*
              * ==================================================
              * 6. DÉTERMINER LA CATÉGORIE
@@ -412,9 +490,7 @@ class IncidentController extends Controller
             $category = null;
 
             /*
-             * ------------------------------------------
-             * Catégorie manuelle
-             * ------------------------------------------
+             * Catégorie manuelle.
              */
             if (!empty($manualCategoryId)) {
                 $category = Category::find(
@@ -423,9 +499,7 @@ class IncidentController extends Controller
             }
 
             /*
-             * ------------------------------------------
-             * Catégorie automatique
-             * ------------------------------------------
+             * Catégorie automatique.
              */
             if (!$category && $suggestedCategoryName) {
                 $category = Category::where(
@@ -445,6 +519,21 @@ class IncidentController extends Controller
 
                 'ai_suggested_category' =>
                     $suggestedCategoryName,
+
+                'ai_category_confidence' =>
+                    $categoryConfidence,
+
+                'ai_priority_confidence' =>
+                    $priorityConfidence,
+
+                'ai_priority_reason' =>
+                    $priorityReason,
+
+                'ai_suggested_action' =>
+                    $suggestedAction,
+
+                'ai_source' =>
+                    $aiSource,
 
                 'priority' =>
                     $suggestedPriority,
@@ -474,10 +563,12 @@ class IncidentController extends Controller
              * ==================================================
              */
             if ($request->hasFile('image')) {
-
                 $path = $request
                     ->file('image')
-                    ->store('incidents', 'public');
+                    ->store(
+                        'incidents',
+                        'public'
+                    );
 
                 $incident->images()->create([
                     'image_path' => $path,
@@ -500,7 +591,6 @@ class IncidentController extends Controller
                 );
 
         } catch (\Throwable $e) {
-
             /*
              * Log de l'erreur.
              */
@@ -523,7 +613,6 @@ class IncidentController extends Controller
         Incident $incident,
         IncidentImage $image
     ): RedirectResponse {
-
         /*
          * Vérifier que l'image appartient
          * réellement à cet incident.
@@ -576,7 +665,6 @@ class IncidentController extends Controller
     public function destroy(
         Incident $incident
     ): RedirectResponse {
-
         $this->authorize(
             'delete',
             $incident
@@ -588,7 +676,6 @@ class IncidentController extends Controller
          * ==================================================
          */
         foreach ($incident->images as $image) {
-
             if (
                 $image->image_path &&
                 Storage::disk('public')->exists(

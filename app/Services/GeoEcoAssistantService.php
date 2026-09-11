@@ -3,14 +3,93 @@
 namespace App\Services;
 
 use App\Models\Incident;
+use App\Services\AI\IncidentAnalysisAgent;
 use Throwable;
 
 class GeoEcoAssistantService
 {
+    public function __construct(
+        private readonly IncidentAnalysisAgent $aiAgent,
+    ) {
+    }
+
     /**
      * Analyse complète d'un incident.
+     *
+     * OpenAI est utilisé en priorité.
+     * En cas d'erreur, on revient automatiquement
+     * vers le système Rule-Based existant.
      */
     public function analyze(Incident $incident): array
+    {
+        /*
+         * ==========================================
+         * OPENAI / AI AGENT
+         * ==========================================
+         */
+        try {
+
+            $aiResult = $this->aiAgent->analyze($incident);
+
+            return [
+                'summary' =>
+                    $aiResult['summary']
+                    ?? $this->generateSummary(
+                        $incident,
+                        $aiResult['priority'] ?? 'Moyenne'
+                    ),
+
+                'suggested_category' =>
+                    $aiResult['category'] ?? null,
+
+                'suggested_priority' =>
+                    $aiResult['priority'] ?? 'Moyenne',
+
+                'suggested_action' =>
+                    $aiResult['suggested_action']
+                    ?? $this->suggestActionRuleBased($incident),
+
+                'improved_description' =>
+                    $this->improveDescriptionRuleBased($incident),
+
+                /*
+                 * AI metadata
+                 */
+                'ai_category_confidence' =>
+                    $aiResult['category_confidence'] ?? 0.0,
+
+                'ai_priority_confidence' =>
+                    $aiResult['priority_confidence'] ?? 0.0,
+
+                'ai_priority_reason' =>
+                    $aiResult['priority_reason'] ?? null,
+
+                'ai_suggested_action' =>
+                    $aiResult['suggested_action'] ?? null,
+
+                'ai_source' =>
+                    'openai',
+            ];
+
+        } catch (Throwable $e) {
+
+            /*
+             * ==========================================
+             * FALLBACK RULE-BASED
+             * ==========================================
+             *
+             * إذا OpenAI ما خدمش، التطبيق يبقى خدام
+             * بالـ système Rule-Based القديم.
+             */
+
+            return $this->analyzeRuleBased($incident);
+        }
+    }
+
+    /**
+     * Analyse Rule-Based de secours.
+     */
+    private function analyzeRuleBased(Incident $incident): array
     {
         try {
 
@@ -19,10 +98,13 @@ class GeoEcoAssistantService
              * باش الـsummary يستعمل النتائج الصحيحة.
              */
             $suggestedCategory =
-                $this->suggestCategory($incident);
+                $this->suggestCategoryRuleBased($incident);
 
             $suggestedPriority =
-                $this->suggestPriority($incident);
+                $this->suggestPriorityRuleBased($incident);
+
+            $suggestedAction =
+                $this->suggestActionRuleBased($incident);
 
             return [
                 'summary' =>
@@ -38,10 +120,23 @@ class GeoEcoAssistantService
                     $suggestedPriority,
 
                 'suggested_action' =>
-                    $this->suggestAction($incident),
+                    $suggestedAction,
 
                 'improved_description' =>
-                    $this->improveDescription($incident),
+                    $this->improveDescriptionRuleBased($incident),
+
+                /*
+                 * AI metadata
+                 */
+                'ai_category_confidence' => null,
+
+                'ai_priority_confidence' => null,
+
+                'ai_priority_reason' => null,
+
+                'ai_suggested_action' => $suggestedAction,
+
+                'ai_source' => 'rule_based',
             ];
 
         } catch (Throwable $e) {
@@ -62,12 +157,29 @@ class GeoEcoAssistantService
 
                 'improved_description' =>
                     $incident->description,
+
+                /*
+                 * AI metadata
+                 */
+                'ai_category_confidence' => null,
+
+                'ai_priority_confidence' => null,
+
+                'ai_priority_reason' => null,
+
+                'ai_suggested_action' =>
+                    'Vérifier l’incident et effectuer une intervention si nécessaire.',
+
+                'ai_source' => 'rule_based',
             ];
         }
     }
 
     /**
      * Répondre aux questions de l'utilisateur.
+     *
+     * Cette partie conserve le comportement Rule-Based
+     * existant pour éviter de casser l'assistant actuel.
      */
     public function ask(
         string $question,
@@ -98,7 +210,7 @@ class GeoEcoAssistantService
 
                 return $this->generateSummary(
                     $incident,
-                    $this->suggestPriority($incident)
+                    $this->suggestPriorityRuleBased($incident)
                 );
             }
 
@@ -112,7 +224,7 @@ class GeoEcoAssistantService
             ) {
 
                 $category =
-                    $this->suggestCategory($incident);
+                    $this->suggestCategoryRuleBased($incident);
 
                 if ($category) {
 
@@ -135,7 +247,7 @@ class GeoEcoAssistantService
 
                 return
                     "Priorité suggérée : **" .
-                    $this->suggestPriority($incident) .
+                    $this->suggestPriorityRuleBased($incident) .
                     "**.";
             }
 
@@ -150,7 +262,7 @@ class GeoEcoAssistantService
             ) {
 
                 return
-                    $this->suggestAction($incident);
+                    $this->suggestActionRuleBased($incident);
             }
 
             /*
@@ -163,7 +275,7 @@ class GeoEcoAssistantService
             ) {
 
                 return
-                    $this->improveDescription($incident);
+                    $this->improveDescriptionRuleBased($incident);
             }
 
             /*
@@ -290,9 +402,6 @@ class GeoEcoAssistantService
 
         /*
          * Priorité
-         *
-         * On utilise en priorité celle calculée
-         * par l'assistant.
          */
         $priority =
             $suggestedPriority
@@ -307,8 +416,10 @@ class GeoEcoAssistantService
 
     /**
      * Déterminer automatiquement la catégorie.
+     *
+     * Rule-Based version.
      */
-    private function suggestCategory(
+    private function suggestCategoryRuleBased(
         Incident $incident
     ): ?string {
 
@@ -708,8 +819,10 @@ class GeoEcoAssistantService
 
     /**
      * Déterminer automatiquement la priorité.
+     *
+     * Rule-Based version.
      */
-    private function suggestPriority(
+    private function suggestPriorityRuleBased(
         Incident $incident
     ): string {
 
@@ -866,13 +979,15 @@ class GeoEcoAssistantService
 
     /**
      * Proposer une action.
+     *
+     * Rule-Based version.
      */
-    private function suggestAction(
+    private function suggestActionRuleBased(
         Incident $incident
     ): string {
 
         $category =
-            $this->suggestCategory($incident);
+            $this->suggestCategoryRuleBased($incident);
 
         switch ($category) {
 
@@ -961,16 +1076,18 @@ class GeoEcoAssistantService
 
     /**
      * Améliorer la description.
+     *
+     * Rule-Based version.
      */
-    private function improveDescription(
+    private function improveDescriptionRuleBased(
         Incident $incident
     ): string {
 
         $category =
-            $this->suggestCategory($incident);
+            $this->suggestCategoryRuleBased($incident);
 
         $priority =
-            $this->suggestPriority($incident);
+            $this->suggestPriorityRuleBased($incident);
 
         $description =
             trim(

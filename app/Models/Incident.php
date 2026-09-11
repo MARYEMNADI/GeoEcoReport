@@ -20,8 +20,14 @@ class Incident extends Model
         'priority',
         'user_id',
         'category_id',
+
         'ai_summary',
         'ai_suggested_category',
+        'ai_category_confidence',
+        'ai_priority_confidence',
+        'ai_priority_reason',
+        'ai_suggested_action',
+        'ai_source',
     ];
 
     protected $casts = [
