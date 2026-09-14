@@ -1,28 +1,33 @@
-.git
-.gitignore
+# Laravel
+/vendor/
+/node_modules/
+/public/storage
 
-node_modules
-vendor
-
-storage/logs/*
-storage/framework/cache/*
-storage/framework/sessions/*
-storage/framework/views/*
-
-tests
-
+# Environment
 .env
 .env.*
 !.env.example
 
-.vscode
-.idea
+# Laravel storage
+/storage/logs/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
 
-*.md
+# IDE
+.vscode/
+.idea/
 
+# Tests
+/tests/
+
+# Docker
 docker-compose.yml
 Dockerfile
-docker-entrypoint.sh"
+docker-entrypoint.sh
 
-/public/storage" 
+# Documentation
+*.md
 
+# Git
+.git/

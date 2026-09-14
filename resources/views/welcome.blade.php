@@ -312,10 +312,9 @@
                 <div class="bg-white p-7 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition">
 
                     <div class="text-4xl mb-5">
-                        🗺️
                     </div>
 
-                    <h3 class="text-xl font-bold mb-3">
+                    <h3 class="text-xl font-bold mb-3 text-blue-600">
                         Carte interactive
                     </h3>
 
@@ -331,10 +330,9 @@
                 <div class="bg-white p-7 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition">
 
                     <div class="text-4xl mb-5">
-                        🤖
                     </div>
 
-                    <h3 class="text-xl font-bold mb-3">
+                    <h3 class="text-xl font-bold mb-3 text-blue-600">
                         GeoEco Assistant
                     </h3>
 
@@ -350,10 +348,9 @@
                 <div class="bg-white p-7 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition">
 
                     <div class="text-4xl mb-5">
-                        🔔
                     </div>
 
-                    <h3 class="text-xl font-bold mb-3">
+                    <h3 class="text-xl font-bold mb-3 text-blue-600">
                         Notifications
                     </h3>
 
@@ -369,10 +366,9 @@
                 <div class="bg-white p-7 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition">
 
                     <div class="text-4xl mb-5">
-                        📊
                     </div>
 
-                    <h3 class="text-xl font-bold mb-3">
+                    <h3 class="text-xl font-bold mb-3 text-blue-600">
                         Statistiques
                     </h3>
 

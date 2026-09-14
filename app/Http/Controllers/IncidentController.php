@@ -27,12 +27,17 @@ class IncidentController extends Controller
     }
 
     /**
-     * Afficher tous les incidents.
+     * Afficher tous les incidents avec statistiques.
      */
     public function index(): View
     {
         $this->authorize('viewAny', Incident::class);
 
+        /*
+         * ==================================================
+         * 1. LISTE DES INCIDENTS
+         * ==================================================
+         */
         $incidents = Incident::with([
             'category',
             'user',
@@ -41,9 +46,69 @@ class IncidentController extends Controller
             ->latest()
             ->paginate(10);
 
+        /*
+         * ==================================================
+         * 2. STATISTIQUES
+         * ==================================================
+         */
+
+        // Nombre total d'incidents
+        $totalIncidents = Incident::count();
+
+        // Incidents en attente
+        $pendingIncidents = Incident::where(
+            'status',
+            'En attente'
+        )->count();
+
+        // Incidents en cours de traitement
+        $inProgressIncidents = Incident::where(
+            'status',
+            'En cours de traitement'
+        )->count();
+
+        // Incidents résolus
+        $resolvedIncidents = Incident::where(
+            'status',
+            'Résolu'
+        )->count();
+
+        // Incidents rejetés
+        $rejectedIncidents = Incident::where(
+            'status',
+            'Rejeté'
+        )->count();
+
+        /*
+         * ==================================================
+         * 3. TAUX DE RÉSOLUTION
+         * ==================================================
+         */
+
+        $resolutionRate = $totalIncidents > 0
+            ? round(
+                ($resolvedIncidents / $totalIncidents) * 100,
+                1
+            )
+            : 0;
+
+        /*
+         * ==================================================
+         * 4. DONNÉES POUR LA VUE
+         * ==================================================
+         */
+
         return view(
             'incidents.index',
-            compact('incidents')
+            compact(
+                'incidents',
+                'totalIncidents',
+                'pendingIncidents',
+                'inProgressIncidents',
+                'resolvedIncidents',
+                'rejectedIncidents',
+                'resolutionRate'
+            )
         );
     }
 
@@ -102,14 +167,8 @@ class IncidentController extends Controller
 
             /*
              * ==================================================
-             * 3. INCIDENT EN MÉMOIRE UNIQUEMENT
+             * 3. INCIDENT TEMPORAIRE
              * ==================================================
-             *
-             * IMPORTANT :
-             * On ne fait PAS save() ici.
-             *
-             * category_id peut être null dans le formulaire,
-             * alors que la colonne DB est NOT NULL.
              */
             $temporaryIncident = new Incident();
 
@@ -174,12 +233,11 @@ class IncidentController extends Controller
              * 6. DÉTERMINER LA CATÉGORIE
              * ==================================================
              */
+
             $category = null;
 
             /*
-             * ------------------------------------------
-             * Catégorie choisie manuellement
-             * ------------------------------------------
+             * Catégorie choisie manuellement.
              */
             if (!empty($data['category_id'])) {
                 $category = Category::find(
@@ -188,9 +246,7 @@ class IncidentController extends Controller
             }
 
             /*
-             * ------------------------------------------
-             * Catégorie proposée automatiquement
-             * ------------------------------------------
+             * Catégorie proposée automatiquement.
              */
             if (!$category && $suggestedCategoryName) {
                 $category = Category::where(
@@ -204,6 +260,7 @@ class IncidentController extends Controller
              * 7. AUCUNE CATÉGORIE TROUVÉE
              * ==================================================
              */
+
             if (!$category) {
                 return back()
                     ->withInput()
@@ -215,16 +272,14 @@ class IncidentController extends Controller
 
             /*
              * ==================================================
-             * 8. PRÉPARER LES DONNÉES FINALES
+             * 8. DONNÉES FINALES
              * ==================================================
              */
+
             $data['category_id'] = $category->id;
 
             $data['priority'] = $suggestedPriority;
 
-            /*
-             * Informations GeoEco Assistant.
-             */
             $data['ai_summary'] = $summary;
 
             $data['ai_suggested_category'] =
@@ -247,11 +302,10 @@ class IncidentController extends Controller
 
             /*
              * ==================================================
-             * 9. CRÉER L'INCIDENT DÉFINITIF
+             * 9. CRÉER L'INCIDENT
              * ==================================================
-             *
-             * Maintenant category_id est obligatoirement défini.
              */
+
             $incident = Incident::create($data);
 
             /*
@@ -259,6 +313,7 @@ class IncidentController extends Controller
              * 10. UPLOAD IMAGE
              * ==================================================
              */
+
             if ($request->hasFile('image')) {
                 $path = $request
                     ->file('image')
@@ -277,6 +332,7 @@ class IncidentController extends Controller
              * 11. REDIRECTION
              * ==================================================
              */
+
             return redirect()
                 ->route(
                     'incidents.show',
@@ -288,9 +344,7 @@ class IncidentController extends Controller
                 );
 
         } catch (\Throwable $e) {
-            /*
-             * Log de l'erreur.
-             */
+
             report($e);
 
             return back()
@@ -412,6 +466,7 @@ class IncidentController extends Controller
              * 2. CATÉGORIE MANUELLE
              * ==================================================
              */
+
             $manualCategoryId =
                 $data['category_id']
                 ?? null;
@@ -421,6 +476,7 @@ class IncidentController extends Controller
              * 3. METTRE À JOUR LES DONNÉES
              * ==================================================
              */
+
             $incident->update($data);
 
             /*
@@ -433,6 +489,7 @@ class IncidentController extends Controller
              * 4. ANALYSE GEOECO ASSISTANT
              * ==================================================
              */
+
             $analysis = $this->assistant->analyze(
                 $incident
             );
@@ -487,6 +544,7 @@ class IncidentController extends Controller
              * 6. DÉTERMINER LA CATÉGORIE
              * ==================================================
              */
+
             $category = null;
 
             /*
@@ -510,9 +568,10 @@ class IncidentController extends Controller
 
             /*
              * ==================================================
-             * 7. PRÉPARER LES DONNÉES GEOECO
+             * 7. DONNÉES GEOECO
              * ==================================================
              */
+
             $updateData = [
                 'ai_summary' =>
                     $summary,
@@ -553,6 +612,7 @@ class IncidentController extends Controller
              * 8. SAUVEGARDER
              * ==================================================
              */
+
             $incident->update(
                 $updateData
             );
@@ -562,6 +622,7 @@ class IncidentController extends Controller
              * 9. AJOUTER UNE IMAGE
              * ==================================================
              */
+
             if ($request->hasFile('image')) {
                 $path = $request
                     ->file('image')
@@ -580,6 +641,7 @@ class IncidentController extends Controller
              * 10. REDIRECTION
              * ==================================================
              */
+
             return redirect()
                 ->route(
                     'incidents.show',
@@ -591,9 +653,7 @@ class IncidentController extends Controller
                 );
 
         } catch (\Throwable $e) {
-            /*
-             * Log de l'erreur.
-             */
+
             report($e);
 
             return back()
@@ -675,6 +735,7 @@ class IncidentController extends Controller
          * 1. SUPPRIMER LES FICHIERS IMAGES
          * ==================================================
          */
+
         foreach ($incident->images as $image) {
             if (
                 $image->image_path &&
@@ -693,6 +754,7 @@ class IncidentController extends Controller
          * 2. SUPPRIMER L'INCIDENT
          * ==================================================
          */
+
         $incident->delete();
 
         /*
@@ -700,6 +762,7 @@ class IncidentController extends Controller
          * 3. REDIRECTION
          * ==================================================
          */
+
         return redirect()
             ->route('incidents.index')
             ->with(
