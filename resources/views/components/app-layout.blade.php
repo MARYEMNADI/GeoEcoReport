@@ -15,6 +15,8 @@
         rel="stylesheet"
         href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     >
+
+    @stack('styles')
 </head>
 
 <body class="bg-gray-100 min-h-screen">
@@ -29,21 +31,53 @@
 
             <div class="flex justify-between items-center h-16">
 
-                {{-- Logo --}}
+                {{-- =========================
+                     Logo
+                ========================== --}}
 
                 <a
                     href="{{ url('/') }}"
-                    class="text-xl font-bold text-green-600"
+                    class="flex items-center gap-3"
                 >
-                    GeoEcoReport
+
+                    <img
+                        src="{{ asset('images/geeco/logo-mark.png') }}"
+                        alt="GeoEcoReport"
+                        class="w-10 h-10 object-contain"
+                    >
+
+                    <div>
+                        <div class="text-xl font-bold text-green-600">
+                            GeoEcoReport
+                        </div>
+
+                        <div class="text-xs text-gray-500 hidden sm:block">
+                            Ville propre • Environnement protégé
+                        </div>
+                    </div>
+
                 </a>
 
 
-                {{-- Right side --}}
+                {{-- =========================
+                     Right side
+                ========================== --}}
 
                 @auth
 
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-5">
+
+                        {{-- =========================
+                             Carte
+                        ========================== --}}
+
+                        <a
+                            href="{{ route('map.index') }}"
+                            class="text-sm text-gray-600 hover:text-green-600 font-medium transition"
+                        >
+                            Carte
+                        </a>
+
 
                         {{-- =========================
                              Assistant
@@ -115,6 +149,7 @@
                                         >
 
                                             @csrf
+
                                             @method('PATCH')
 
                                             <button
@@ -335,8 +370,8 @@
     ========================== --}}
 
     <script
-        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-    </script>
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    ></script>
 
 
     {{-- =========================
@@ -377,13 +412,13 @@
                 dropdown.classList.add('hidden');
 
             }
-<a href="{{ route('map.index') }}" class="text-sm text-gray-600 hover:text-green-600">
-    Carte
-</a>
+
         });
 
     </script>
 
+
+    @stack('scripts')
 
 </body>
 

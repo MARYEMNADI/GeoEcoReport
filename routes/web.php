@@ -20,7 +20,15 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return redirect()->route('dashboard');
+
+    // Utilisateur connecté
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+
+    // Visiteur / Guest
+    return view('welcome');
+
 });
 
 
@@ -80,18 +88,22 @@ Route::middleware('auth')->group(function () {
 
         $user = auth()->user();
 
+        // Administrateur
         if ($user->hasRole('administrateur')) {
             return redirect()->route('admin.dashboard');
         }
 
+        // Technicien
         if ($user->hasRole('technicien')) {
             return redirect()->route('technicien.dashboard');
         }
 
+        // Citoyen
         if ($user->hasRole('citoyen')) {
             return redirect()->route('citoyen.dashboard');
         }
 
+        // Aucun rôle
         abort(
             403,
             'Aucun rôle attribué à cet utilisateur.'
@@ -131,13 +143,19 @@ Route::middleware('auth')->group(function () {
     )
         ->middleware('role:administrateur')
         ->name('admin.dashboard');
-         /*
+
+
+    /*
     |--------------------------------------------------------------------------
     | Carte des incidents
     |--------------------------------------------------------------------------
     */
-    Route::get('/map', [MapController::class, 'index'])
-        ->name('map.index');
+
+    Route::get(
+        '/map',
+        [MapController::class, 'index']
+    )->name('map.index');
+
 
     /*
     |--------------------------------------------------------------------------
@@ -255,17 +273,5 @@ Route::middleware('auth')->group(function () {
         '/assistant/clear',
         [AssistantController::class, 'clear']
     )->name('assistant.clear');
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Carte des incidents
-    |--------------------------------------------------------------------------
-    */
-
-    Route::get(
-        '/map',
-        [MapController::class, 'index']
-    )->name('map.index');
 
 });
