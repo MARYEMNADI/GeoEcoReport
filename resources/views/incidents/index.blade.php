@@ -129,134 +129,76 @@
 
             @endif
 
+{{-- ================================================= --}}
+{{-- STATISTIQUES --}}
+{{-- ================================================= --}}
 
-            {{-- ================================================= --}}
-            {{-- STATISTIQUES --}}
-            {{-- ================================================= --}}
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+    {{-- TOTAL --}}
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            Total signalements
+        </p>
 
+        <p class="text-3xl font-bold text-gray-900 mt-2">
+            {{ $totalIncidents }}
+        </p>
 
-                {{-- TOTAL --}}
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-
-                    <div class="flex items-start justify-between">
-
-                        <div>
-
-                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                Total signalements
-                            </p>
-
-                            <p class="text-3xl font-bold text-gray-900 mt-2">
-                                {{ $totalIncidents }}
-                            </p>
-
-                            <p class="text-xs text-green-600 font-medium mt-1">
-                                Tous les incidents
-                            </p>
-
-                        </div>
-
-                        <div class="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">
-                            
-                        </div>
-
-                    </div>
-
-                </div>
+        <p class="text-xs text-green-600 font-medium mt-1">
+            Tous les incidents
+        </p>
+    </div>
 
 
-                {{-- EN ATTENTE --}}
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+    {{-- EN ATTENTE --}}
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            En attente
+        </p>
 
-                    <div class="flex items-start justify-between">
+        <p class="text-3xl font-bold text-gray-900 mt-2">
+            {{ $pendingIncidents }}
+        </p>
 
-                        <div>
-
-                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                En attente
-                            </p>
-
-                            <p class="text-3xl font-bold text-gray-900 mt-2">
-                                {{ $pendingIncidents }}
-                            </p>
-
-                            <p class="text-xs text-orange-500 font-medium mt-1">
-                                Action requise
-                            </p>
-
-                        </div>
-
-                        <div class="h-10 w-10 rounded-lg bg-orange-50 flex items-center justify-center text-orange-500">
-                            
-                        </div>
-
-                    </div>
-
-                </div>
+        <p class="text-xs text-orange-500 font-medium mt-1">
+            Action requise
+        </p>
+    </div>
 
 
-                {{-- EN COURS --}}
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+    {{-- EN COURS --}}
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            En cours de traitement
+        </p>
 
-                    <div class="flex items-start justify-between">
+        <p class="text-3xl font-bold text-gray-900 mt-2">
+            {{ $inProgressIncidents }}
+        </p>
 
-                        <div>
-
-                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                En cours de traitement
-                            </p>
-
-                            <p class="text-3xl font-bold text-gray-900 mt-2">
-                                {{ $inProgressIncidents }}
-                            </p>
-
-                            <p class="text-xs text-blue-600 font-medium mt-1">
-                                Équipes mobilisées
-                            </p>
-
-                        </div>
-
-                        <div class="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-                            
-                        </div>
-
-                    </div>
-
-                </div>
+        <p class="text-xs text-blue-600 font-medium mt-1">
+            Équipes mobilisées
+        </p>
+    </div>
 
 
-                {{-- RESOLUS --}}
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+    {{-- RESOLUS --}}
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            Résolus
+        </p>
 
-                    <div class="flex items-start justify-between">
+        <p class="text-3xl font-bold text-gray-900 mt-2">
+            {{ $resolvedIncidents }}
+        </p>
 
-                        <div>
+        <p class="text-xs text-green-600 font-medium mt-1">
+            Taux : {{ $resolutionRate }}%
+        </p>
+    </div>
 
-                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                Résolus
-                            </p>
-
-                            <p class="text-3xl font-bold text-gray-900 mt-2">
-                                {{ $resolvedIncidents }}
-                            </p>
-
-                            <p class="text-xs text-green-600 font-medium mt-1">
-                                Taux : {{ $resolutionRate }}%
-                            </p>
-
-                        </div>
-
-                        <div class="h-10 w-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
-                            
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
+</div>
 
 
             {{-- ================================================= --}}

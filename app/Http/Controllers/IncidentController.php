@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use App\Http\Requests\StoreIncidentRequest;
 use App\Http\Requests\UpdateIncidentRequest;
 use App\Models\Category;
@@ -29,88 +30,125 @@ class IncidentController extends Controller
     /**
      * Afficher tous les incidents avec statistiques.
      */
-    public function index(): View
-    {
-        $this->authorize('viewAny', Incident::class);
 
-        /*
-         * ==================================================
-         * 1. LISTE DES INCIDENTS
-         * ==================================================
-         */
-        $incidents = Incident::with([
-            'category',
-            'user',
-            'images',
-        ])
-            ->latest()
-            ->paginate(10);
 
-        /*
-         * ==================================================
-         * 2. STATISTIQUES
-         * ==================================================
-         */
+public function index(Request $request): View
+{
+    
+    $this->authorize('viewAny', Incident::class);
 
-        // Nombre total d'incidents
-        $totalIncidents = Incident::count();
+    /*
+     * ==================================================
+     * 1. LISTE DES INCIDENTS + RECHERCHE / FILTRES
+     * ==================================================
+     */
 
-        // Incidents en attente
-        $pendingIncidents = Incident::where(
-            'status',
-            'En attente'
-        )->count();
+    $query = Incident::with([
+        'category',
+        'user',
+        'images',
+    ]);
 
-        // Incidents en cours de traitement
-        $inProgressIncidents = Incident::where(
-            'status',
-            'En cours de traitement'
-        )->count();
+    // Recherche par titre ou description
+    if ($request->filled('search')) {
+        $search = $request->search;
 
-        // Incidents résolus
-        $resolvedIncidents = Incident::where(
-            'status',
-            'Résolu'
-        )->count();
-
-        // Incidents rejetés
-        $rejectedIncidents = Incident::where(
-            'status',
-            'Rejeté'
-        )->count();
-
-        /*
-         * ==================================================
-         * 3. TAUX DE RÉSOLUTION
-         * ==================================================
-         */
-
-        $resolutionRate = $totalIncidents > 0
-            ? round(
-                ($resolvedIncidents / $totalIncidents) * 100,
-                1
-            )
-            : 0;
-
-        /*
-         * ==================================================
-         * 4. DONNÉES POUR LA VUE
-         * ==================================================
-         */
-
-        return view(
-            'incidents.index',
-            compact(
-                'incidents',
-                'totalIncidents',
-                'pendingIncidents',
-                'inProgressIncidents',
-                'resolvedIncidents',
-                'rejectedIncidents',
-                'resolutionRate'
-            )
-        );
+        $query->where(function ($q) use ($search) {
+            $q->where('title', 'like', '%' . $search . '%')
+              ->orWhere('description', 'like', '%' . $search . '%');
+        });
     }
+
+    // Filtre par catégorie
+    if ($request->filled('category_id')) {
+        $query->where('category_id', $request->category_id);
+    }
+
+    // Filtre par statut
+    if ($request->filled('status')) {
+        $query->where('status', $request->status);
+    }
+
+    // Filtre par priorité
+    if ($request->filled('priority')) {
+        $query->where('priority', $request->priority);
+    }
+
+    // Récupération des incidents
+    // withQueryString() permet de conserver les filtres
+    // lorsqu'on change de page avec la pagination.
+    $incidents = $query
+        ->latest()
+        ->paginate(10)
+        ->withQueryString();
+
+    /*
+     * ==================================================
+     * 2. STATISTIQUES
+     * ==================================================
+     */
+
+    // Nombre total d'incidents
+    $totalIncidents = Incident::count();
+
+    // Incidents en attente
+    $pendingIncidents = Incident::where(
+        'status',
+        'En attente'
+    )->count();
+
+    // Incidents en cours de traitement
+    $inProgressIncidents = Incident::where(
+        'status',
+        'En cours de traitement'
+    )->count();
+
+    // Incidents résolus
+    $resolvedIncidents = Incident::where(
+        'status',
+        'Résolu'
+    )->count();
+
+    // Incidents rejetés
+    $rejectedIncidents = Incident::where(
+        'status',
+        'Rejeté'
+    )->count();
+
+    /*
+     * ==================================================
+     * 3. TAUX DE RÉSOLUTION
+     * ==================================================
+     */
+
+    $resolutionRate = $totalIncidents > 0
+        ? round(
+            ($resolvedIncidents / $totalIncidents) * 100,
+            1
+        )
+        : 0;
+
+    /*
+     * ==================================================
+     * 4. DONNÉES POUR LA VUE
+     * ==================================================
+     */
+
+    return view(
+        'incidents.index',
+        compact(
+            'incidents',
+            'totalIncidents',
+            'pendingIncidents',
+            'inProgressIncidents',
+            'resolvedIncidents',
+            'rejectedIncidents',
+            'resolutionRate'
+        )
+    );
+}
+
+
 
     /**
      * Page de création d'un incident.

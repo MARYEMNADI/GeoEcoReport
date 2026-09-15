@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\AffectationController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\CategoryController;
+// use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IncidentController;
@@ -243,12 +243,12 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::resource(
-        'categories',
-        CategoryController::class
-    )->except([
-        'show'
-    ]);
+    // Route::resource(
+    //     'categories',
+    //     CategoryController::class
+    // )->except([
+    //     'show'
+    // ]);
 
 
     /*
