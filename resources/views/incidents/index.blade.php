@@ -7,6 +7,7 @@
     <x-slot:header>
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
 
+            {{-- Titre --}}
             <div>
                 <div class="flex items-center gap-2 mb-1">
                     <span class="w-2 h-2 rounded-full bg-green-500"></span>
@@ -25,8 +26,18 @@
                 </p>
             </div>
 
+            {{-- Boutons --}}
             <div class="flex flex-wrap items-center gap-2">
 
+                {{-- Retour Dashboard Admin --}}
+                @if(auth()->user()->hasRole('administrateur'))
+                    <a href="{{ route('admin.dashboard') }}"
+                       class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-lg shadow-sm transition">
+                        ← Vue d'ensemble de la plateforme
+                    </a>
+                @endif
+
+                {{-- Signaler un incident --}}
                 @can('create', App\Models\Incident::class)
                     <a href="{{ route('incidents.create') }}"
                        class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2.5 rounded-lg shadow-sm transition">
@@ -65,7 +76,7 @@
                     <div class="flex items-center gap-3">
 
                         <div class="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-green-600">
-                            
+                            ✓
                         </div>
 
                         <div>
@@ -129,76 +140,85 @@
 
             @endif
 
-{{-- ================================================= --}}
-{{-- STATISTIQUES --}}
-{{-- ================================================= --}}
 
-<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+            {{-- ================================================= --}}
+            {{-- STATISTIQUES --}}
+            {{-- ================================================= --}}
 
-    {{-- TOTAL --}}
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            Total signalements
-        </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
 
-        <p class="text-3xl font-bold text-gray-900 mt-2">
-            {{ $totalIncidents }}
-        </p>
+                {{-- TOTAL --}}
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
 
-        <p class="text-xs text-green-600 font-medium mt-1">
-            Tous les incidents
-        </p>
-    </div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Total signalements
+                    </p>
 
+                    <p class="text-3xl font-bold text-gray-900 mt-2">
+                        {{ $totalIncidents }}
+                    </p>
 
-    {{-- EN ATTENTE --}}
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            En attente
-        </p>
+                    <p class="text-xs text-green-600 font-medium mt-1">
+                        Tous les incidents
+                    </p>
 
-        <p class="text-3xl font-bold text-gray-900 mt-2">
-            {{ $pendingIncidents }}
-        </p>
-
-        <p class="text-xs text-orange-500 font-medium mt-1">
-            Action requise
-        </p>
-    </div>
+                </div>
 
 
-    {{-- EN COURS --}}
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            En cours de traitement
-        </p>
+                {{-- EN ATTENTE --}}
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
 
-        <p class="text-3xl font-bold text-gray-900 mt-2">
-            {{ $inProgressIncidents }}
-        </p>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        En attente
+                    </p>
 
-        <p class="text-xs text-blue-600 font-medium mt-1">
-            Équipes mobilisées
-        </p>
-    </div>
+                    <p class="text-3xl font-bold text-gray-900 mt-2">
+                        {{ $pendingIncidents }}
+                    </p>
+
+                    <p class="text-xs text-orange-500 font-medium mt-1">
+                        Action requise
+                    </p>
+
+                </div>
 
 
-    {{-- RESOLUS --}}
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            Résolus
-        </p>
+                {{-- EN COURS --}}
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
 
-        <p class="text-3xl font-bold text-gray-900 mt-2">
-            {{ $resolvedIncidents }}
-        </p>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        En cours de traitement
+                    </p>
 
-        <p class="text-xs text-green-600 font-medium mt-1">
-            Taux : {{ $resolutionRate }}%
-        </p>
-    </div>
+                    <p class="text-3xl font-bold text-gray-900 mt-2">
+                        {{ $inProgressIncidents }}
+                    </p>
 
-</div>
+                    <p class="text-xs text-blue-600 font-medium mt-1">
+                        Équipes mobilisées
+                    </p>
+
+                </div>
+
+
+                {{-- RESOLUS --}}
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Résolus
+                    </p>
+
+                    <p class="text-3xl font-bold text-gray-900 mt-2">
+                        {{ $resolvedIncidents }}
+                    </p>
+
+                    <p class="text-xs text-green-600 font-medium mt-1">
+                        Taux : {{ $resolutionRate }}%
+                    </p>
+
+                </div>
+
+            </div>
 
 
             {{-- ================================================= --}}
@@ -279,23 +299,31 @@
                                 Tous les statuts
                             </option>
 
-                            <option value="En attente"
-                                @selected(request('status') === 'En attente')>
+                            <option
+                                value="En attente"
+                                @selected(request('status') === 'En attente')
+                            >
                                 En attente
                             </option>
 
-                            <option value="En cours de traitement"
-                                @selected(request('status') === 'En cours de traitement')>
+                            <option
+                                value="En cours de traitement"
+                                @selected(request('status') === 'En cours de traitement')
+                            >
                                 En cours de traitement
                             </option>
 
-                            <option value="Résolu"
-                                @selected(request('status') === 'Résolu')>
+                            <option
+                                value="Résolu"
+                                @selected(request('status') === 'Résolu')
+                            >
                                 Résolu
                             </option>
 
-                            <option value="Rejeté"
-                                @selected(request('status') === 'Rejeté')>
+                            <option
+                                value="Rejeté"
+                                @selected(request('status') === 'Rejeté')
+                            >
                                 Rejeté
                             </option>
 
@@ -316,23 +344,31 @@
                                 Toutes priorités
                             </option>
 
-                            <option value="Faible"
-                                @selected(request('priority') === 'Faible')>
+                            <option
+                                value="Faible"
+                                @selected(request('priority') === 'Faible')
+                            >
                                 Faible
                             </option>
 
-                            <option value="Moyenne"
-                                @selected(request('priority') === 'Moyenne')>
+                            <option
+                                value="Moyenne"
+                                @selected(request('priority') === 'Moyenne')
+                            >
                                 Moyenne
                             </option>
 
-                            <option value="Élevée"
-                                @selected(request('priority') === 'Élevée')>
+                            <option
+                                value="Élevée"
+                                @selected(request('priority') === 'Élevée')
+                            >
                                 Élevée
                             </option>
 
-                            <option value="Urgente"
-                                @selected(request('priority') === 'Urgente')>
+                            <option
+                                value="Urgente"
+                                @selected(request('priority') === 'Urgente')
+                            >
                                 Urgente
                             </option>
 
@@ -481,7 +517,6 @@
                                     <td class="px-5 py-4 whitespace-nowrap">
 
                                         @php
-
                                             $priorityClasses = match($incident->priority) {
 
                                                 'Urgente' =>
@@ -499,7 +534,6 @@
                                                 default =>
                                                     'bg-gray-50 text-gray-700 border-gray-200',
                                             };
-
                                         @endphp
 
                                         <span
@@ -515,7 +549,6 @@
                                     <td class="px-5 py-4 whitespace-nowrap">
 
                                         @php
-
                                             $statusClasses = match($incident->status) {
 
                                                 'En attente' =>
@@ -533,7 +566,6 @@
                                                 default =>
                                                     'bg-gray-50 text-gray-700 border-gray-200',
                                             };
-
                                         @endphp
 
                                         <span

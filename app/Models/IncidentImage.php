@@ -11,7 +11,7 @@ class IncidentImage extends Model
     use HasFactory;
 
     /**
-     * الحقول القابلة للتعبئة بشكل جماعي (Mass Assignment)
+     * Mass Assignment)
      */
     protected $fillable = [
         'incident_id', // معرف البلاغ المرتبط بهذه الصورة (Foreign Key)

@@ -12,7 +12,7 @@ class User extends Authenticatable
     use HasFactory, Notifiable, HasRolesAndPermissions;
 
     /**
-     * الحقول القابلة للتعبئة.
+     * 
      */
     protected $fillable = [
         'name',
@@ -29,7 +29,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * تحويل أنواع البيانات.
+     *تحويل أنواع ت.
      */
     protected function casts(): array
     {
